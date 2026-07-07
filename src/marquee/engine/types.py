@@ -96,6 +96,11 @@ class ExecutionReport:
     Conservation identity (ADR-009 rule 3), universal including rejections:
         order.qty == sum(f.qty for f in fills) + resting_qty + cancelled_qty
     REJECTED implies fills == (), resting_qty == 0, cancelled_qty == order.qty.
+
+    stp_cancelled lists RESTING order ids removed by SelfTradePolicy.CANCEL_RESTING
+    while this order was matching; the kernel turns these into cancel
+    notifications for their owner. Their quantities are outside the identity
+    above (they belong to the maker's accounting, not the taker's).
     """
 
     order_id: OrderId
@@ -103,6 +108,7 @@ class ExecutionReport:
     fills: tuple[Fill, ...]
     resting_qty: Qty  # remainder now resting on the book (LIMIT only)
     cancelled_qty: Qty  # remainder cancelled (market IOC remainder, or rejection)
+    stp_cancelled: tuple[OrderId, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)

@@ -299,9 +299,13 @@ a spec to test against:
 6. **Cancel outcomes** are a three-way enum, O(1) to compute with no extra state:
    `CANCELLED` (was live, now removed), `ALREADY_TERMINAL` (id was issued but the order
    already filled or cancelled — benign race under latency), `UNKNOWN` (id never
-   issued — caller bug, fail loudly). Order ids are monotonic engine-assigned, so
-   UNKNOWN is an id-range check and ALREADY_TERMINAL is "not live and id < next_id".
-   Agents disambiguate filled-vs-cancelled from their own ack/fill bookkeeping.
+   issued — caller bug, fail loudly). Order ids are assigned by the *kernel* (ADR-007)
+   as a dense monotonic counter; the engine validates strict increase on submit and
+   raises on violation. UNKNOWN is then an id-range check and ALREADY_TERMINAL is "not
+   live and id <= max seen". Agents disambiguate filled-vs-cancelled from their own
+   ack/fill bookkeeping. When `CANCEL_RESTING` self-trade prevention removes a resting
+   order mid-match, the taker's `ExecutionReport.stp_cancelled` carries the removed ids
+   so the kernel can notify their owner.
 
 **Rejected.** Remainder-rests market orders (turns them into limit-at-fill-price orders
 nobody asked for); boolean cancel result (collapses benign races and caller bugs into

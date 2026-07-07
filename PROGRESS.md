@@ -3,65 +3,73 @@
 Read this + DECISIONS.md + ASSUMPTIONS.md and you can continue cold. Update before
 ending any work stretch.
 
-## Current milestone: M0 — COMPLETE. Next: M1 (matching engine).
+## Current milestone: M1 — COMPLETE (gate passed). Next: M2 (sim kernel + agent API).
 
-## Done (M0, 2026-07-07)
+## M1 gate results (2026-07-07)
 
-- Repo created at `C:\dev\marquee` (moved out of OneDrive; pointer README left behind —
-  ASSUMPTIONS.md #8).
-- Toolchain: Python 3.13 + uv, pytest + hypothesis + ruff. `uv sync` → `uv run pytest`
-  green (8 tests), `uv run ruff check .` clean.
-- ADR-001…ADR-010 written in DECISIONS.md, then hardened by an adversarial review pass
-  (3 independent reviewer lenses: determinism/replay, performance realism, matching
-  semantics; 22 findings, all accepted fixes folded into the ADRs). Highest-impact
-  fixes: identity-keyed RNG spawn keys, exact JSONL byte contract for Windows,
-  perturbation replay mode (c), on_order_ack in the Agent protocol, ExecutionReport
-  conservation identity with REJECTED status, three-way CancelStatus, self-trade policy
-  enum, tombstone/heap compaction rules, benchmark protocol.
-- Typed boundary vocabulary in `src/marquee/engine/types.py` and
-  `src/marquee/sim/protocols.py`. numpy pinned exact (determinism, ADR-006).
-- `.gitattributes` protects `*.jsonl`/`*.json` byte-identity.
+- **Property tests: PASS.** `tests/test_engine_properties.py` — 200-example Hypothesis
+  suite over arbitrary op sequences, parameterized over all three self-trade policies.
+  Core oracle is a *shadow book* rebuilt purely from ExecutionReports/CancelResults and
+  compared level-by-level against `snapshot()` after every operation. Covers:
+  price-time priority (price monotone across fills, maker ids increasing within level),
+  maker price rule, conservation identity, no crossed book, no negative quantities,
+  cancel correctness (three-way status), IOC market orders, rejection paths.
+  Plus 13 example-based semantics pins in `tests/test_engine_semantics.py`.
+- **Determinism: PASS.** `tests/test_engine_determinism.py` — same 30k-message seeded
+  workload in two subprocesses with different PYTHONHASHSEED → identical SHA-256.
+- **Throughput: PASS.** `bench/lob_bench.py` (protocol per ADR-005): median
+  **406,520 msgs/sec** over 5 runs of 1M mixed messages (55% limits / 25% cancels /
+  20% markets incl. sweeps) — 4× the stated 100k target, ±1% run variance.
+- **Static analysis: PASS.** ruff clean; `uvx semgrep scan --config auto` clean;
+  `uvx bandit -r src` clean.
+- **Review caveat (honest note):** the independent 3-agent adversarial review of
+  `book.py` **errored out on session usage limits** (0 findings returned because the
+  reviewers died, not because they found nothing). A careful inline trace of the
+  assigned attack surfaces (stale-counter accounting across drop/recreate/rebuild,
+  level counter drift on fill/cancel/STP paths, FIFO through compaction, dict-order
+  determinism) found no defects, and the shadow-book suite is a strong oracle — but
+  **re-run the independent review at the start of the next session** (script saved, see
+  git history / workflow `m1-engine-review`) before building M2 on top.
 
-## Exact next action (M1)
+## Engine summary (for cold resume)
 
-Work test-first against ADR-009/ADR-005. Order of work:
+`src/marquee/engine/book.py` — `MatchingEngine.submit/cancel/snapshot/best_bid/best_ask`.
+Internals per ADR-005: liveness = orders-dict membership; lazy tombstones with per-level
+compaction (dead > live and dead > 16); per-side lazy heaps with in_heap dedupe + rebuild
+when stale > live levels. Semantics per ADR-009 (maker price, IOC markets, REJECTED
+status, 3-way cancel status, self-trade policies ALLOW/CANCEL_RESTING/REJECT_TAKER with
+`stp_cancelled` reporting). Kernel assigns ids; engine enforces strict increase.
 
-1. `tests/test_engine_properties.py` — Hypothesis property suite BEFORE the engine:
-   - price-time priority: fills consume best price first, FIFO within a level
-   - maker price rule: every `Fill.price` equals the resting order's price
-   - conservation: `qty == sum(fills) + resting_qty + cancelled_qty` for every submit
-   - no crossed book after any operation sequence (best_bid < best_ask when both exist)
-   - no negative quantities anywhere, ever
-   - cancel correctness: CANCELLED removes exactly `removed_qty`; ALREADY_TERMINAL and
-     UNKNOWN change nothing; cancelled order never fills afterwards
-   - market IOC: empty opposite book → zero fills, full cancel
-   - validation: qty <= 0 or LIMIT price < 1 → REJECTED, book unchanged
-   - self-trade under ALLOW: executes, both agent ids on the Fill
-2. `src/marquee/engine/book.py` — implement per ADR-005 (mutable `_Resting` internals,
-   liveness = orders-dict membership, tombstone + heap compaction, cached L1).
-3. `bench/lob_bench.py` — per the ADR-005 benchmark protocol. Gate: ≥100k msgs/sec
-   median of 5, mixed workload with sweep-heavy segment.
-4. Determinism check at engine level: same input event stream twice (separate
-   subprocesses, different PYTHONHASHSEED) → byte-identical serialized fill stream.
-5. Static analysis pass (`uvx ruff check`, try `uvx semgrep` — if semgrep fails on
-   Windows, use `uvx bandit` and note in ASSUMPTIONS.md).
+## Exact next action (M2)
 
-M1 gate (from the brief): all properties pass; determinism test passes; benchmark hits
-the stated 100k msgs/sec target.
+1. Re-run the independent engine review (see caveat above); fix anything confirmed.
+2. Then M2, test-first: event-driven kernel per ADR-002/003/006/007 —
+   - `tests/test_kernel_ordering.py` first: heap total order (time, priority, seq),
+     latency application, deterministic delivery order.
+   - `src/marquee/sim/kernel.py`: clock, event queue, agent registry (stable order),
+     intent validation chokepoint (`type(x) is int` — ADR-003), id assignment,
+     ack/fill delivery with latency, wakeup scheduling.
+   - RNG: identity-keyed spawn (`SeedSequence(master, spawn_key=(domain, id))`) +
+     property test that removing one agent leaves other streams bit-identical.
+   - Recorder: JSONL writer with the exact ADR-006 byte contract + manifest.json.
+   - M2 gate: scripted multi-agent scenario replays byte-identically (subprocess,
+     different PYTHONHASHSEED); kernel event-ordering tests pass; full-loop throughput
+     ≥ 30k events/sec.
 
 ## Blockers / user actions needed
 
-- `gh auth login` has not been run — no GitHub remote yet. Local commits accumulate
-  meanwhile. Repo should be public when created (ASSUMPTIONS.md #3).
-- OpenBB + Alpaca MCP servers must be connected before M4 (calibration reference data).
+- `gh auth login` has not been run — no GitHub remote yet. Local commits accumulate.
+- OpenBB + Alpaca MCP servers must be connected before M4.
+- Subagent session limit was hit this session (resets 11pm Asia/Calcutta) — affects
+  workflow-based review passes only; solo work unaffected.
 
 ## Milestone map
 
 | Milestone | Status |
 |---|---|
 | M0 scaffold + ADRs | done |
-| M1 matching engine | next |
-| M2 sim kernel + agent API | — |
+| M1 matching engine | done — gate passed (see caveat: re-run independent review) |
+| M2 sim kernel + agent API | next |
 | M3 rule-based agents | — |
 | M4 calibration | — |
 | M5 viz + flash crash (Phase 1 ends) | — |

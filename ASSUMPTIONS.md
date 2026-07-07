@@ -26,8 +26,9 @@ would change if it's wrong. Corrections welcome at any time.
 
 6. **MCP availability this session:** OpenBB, Alpaca, Perplexity, Firecrawl, Semgrep,
    and Sequential Thinking servers are not connected; GitHub MCP needs auth.
-   Substitutions: WebSearch for research passes; semgrep installed as a CLI (or
-   ruff+bandit if semgrep's Windows support fails); local git + gh CLI for GitHub.
+   Substitutions: WebSearch for research passes; local git + gh CLI for GitHub.
+   Semgrep works natively on Windows via `uvx semgrep` (verified at M1, v1.168.0) —
+   no fallback needed; bandit is run additionally since it's free.
    **OpenBB/Alpaca are genuinely required by M4** for calibration reference data —
    connect them before M4 starts.
 

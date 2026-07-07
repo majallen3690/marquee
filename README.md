@@ -14,8 +14,8 @@ is financial advice. No real orders are placed anywhere.**
 | Milestone | Scope | Status |
 |---|---|---|
 | M0 | Scaffold, toolchain, core design ADRs | done |
-| M1 | Matching engine (property-tested, deterministic, benchmarked) | next |
-| M2 | Simulation kernel + agent API | — |
+| M1 | Matching engine (property-tested, deterministic, 406k msgs/sec) | done |
+| M2 | Simulation kernel + agent API | next |
 | M3 | Rule-based agent population | — |
 | M4 | Calibration against stylized facts | — |
 | M5 | Live visualization + emergent flash-crash demo | — |

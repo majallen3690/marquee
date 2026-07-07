@@ -6,6 +6,7 @@ See DECISIONS.md ADR-004 (integer prices), ADR-005 (data structures), ADR-007
 (boundaries).
 """
 
+from marquee.engine.book import MatchingEngine
 from marquee.engine.types import (
     AgentId,
     BookSnapshot,
@@ -34,6 +35,7 @@ __all__ = [
     "ExecutionReport",
     "Fill",
     "LevelView",
+    "MatchingEngine",
     "Order",
     "OrderId",
     "OrderType",
