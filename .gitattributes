@@ -1,0 +1,4 @@
+# Byte-identity of logs is a determinism gate (ADR-006) — git must never
+# rewrite their line endings.
+*.jsonl -text
+*.json -text

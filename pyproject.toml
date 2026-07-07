@@ -1,0 +1,39 @@
+[project]
+name = "marquee"
+version = "0.1.0"
+description = "Market-microstructure sandbox: a deterministic limit order book, matching engine, and multi-agent market simulation."
+readme = "README.md"
+requires-python = ">=3.13"
+license = { text = "MIT" }
+dependencies = [
+    # Exact pin: NEP 19 does not guarantee bit-stream stability for Generator
+    # distribution methods across numpy releases — bumping this is a
+    # determinism-breaking change requiring golden-log regeneration (ADR-006).
+    "numpy==2.5.1",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "hypothesis>=6.115",
+    "ruff>=0.8",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/marquee"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM"]

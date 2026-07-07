@@ -1,0 +1,23 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.hypothesis/
+dist/
+*.egg-info/
+
+# Node / Next.js (M5)
+node_modules/
+.next/
+out/
+
+# Simulation output
+runs/
+
+# Local env / editor
+.env
+.env.*
+.vscode/
+.idea/
