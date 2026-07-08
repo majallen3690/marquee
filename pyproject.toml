@@ -10,6 +10,9 @@ dependencies = [
     # distribution methods across numpy releases — bumping this is a
     # determinism-breaking change requiring golden-log regeneration (ADR-006).
     "numpy==2.5.1",
+    # Config parsing only — never determinism-sensitive: the config hash covers
+    # raw file bytes, not any YAML re-serialization (ADR-006).
+    "pyyaml>=6.0.2",
 ]
 
 [dependency-groups]

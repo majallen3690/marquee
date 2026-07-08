@@ -15,6 +15,7 @@ import numpy as np
 from marquee.engine.types import (
     AgentId,
     BookSnapshot,
+    CancelResult,
     ExecutionReport,
     Fill,
     OrderId,
@@ -71,6 +72,15 @@ class Agent(Protocol):
     (delivered under the same latency model as fills) is how an agent learns the
     id of its own resting order — without it, cancelling a stale quote is
     impossible (ADR-007).
+
+    on_fill fires for the MAKER side of a trade; the taker sees its fills inside
+    its own ExecutionReport ack. In a self-trade under ALLOW both fire for the
+    same agent (taker leg + maker leg), so inventory bookkeeping nets to zero
+    without special-casing.
+
+    on_cancel_ack delivers the result of the agent's own CancelIntent, and also
+    fires when self-trade prevention (CANCEL_RESTING) removes one of the agent's
+    resting orders (ADR-011).
     """
 
     @property
@@ -82,13 +92,21 @@ class Agent(Protocol):
 
     def on_fill(self, ctx: AgentContext, fill: Fill) -> list[Intent]: ...
 
+    def on_cancel_ack(self, ctx: AgentContext, result: CancelResult) -> list[Intent]: ...
+
 
 @runtime_checkable
 class Recorder(Protocol):
-    """Sink for the kernel's typed event stream. JSONL writer in M2; the same
-    stream fans out to the WebSocket bridge in M5 (one producer, two sinks).
-    Serialization contract (exact bytes) is pinned in ADR-006."""
+    """Sink for the kernel's event stream. JSONL writer in M2; the same stream
+    fans out to the WebSocket bridge in M5 (one producer, two sinks).
 
-    def record(self, event: dict) -> None: ...
+    Lines arrive pre-serialized in the exact ADR-006 canonical form — the
+    kernel builds them with the fixed-schema fmt_* helpers in
+    marquee.sim.recorder, which enforce the built-in-int contract before any
+    byte is produced. Events go to events.jsonl, fills to trades.jsonl."""
+
+    def record_line(self, line: str) -> None: ...
+
+    def record_trade_line(self, line: str) -> None: ...
 
     def close(self) -> None: ...

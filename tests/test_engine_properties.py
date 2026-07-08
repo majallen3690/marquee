@@ -157,8 +157,9 @@ def apply_and_check(engine: MatchingEngine, shadow: ShadowBook, order: Order) ->
         else:
             assert report.fills[0].price == pre_best_opposite
 
-    for oid in report.stp_cancelled:
-        del shadow.remaining[oid]
+    for sc in report.stp_cancelled:
+        assert sc.qty == shadow.remaining[sc.order_id]
+        del shadow.remaining[sc.order_id]
 
     if report.resting_qty:
         shadow.remaining[order.order_id] = report.resting_qty

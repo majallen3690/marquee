@@ -10,6 +10,7 @@ from marquee.engine import (
     ReportStatus,
     SelfTradePolicy,
     Side,
+    StpCancel,
 )
 
 _id_counter = 0
@@ -164,7 +165,7 @@ def test_self_trade_cancel_resting_removes_own_and_keeps_matching() -> None:
     eng.submit(own)
     eng.submit(other)
     report = eng.submit(order(Side.BUY, qty=5, price=100, agent=7))
-    assert report.stp_cancelled == (own.order_id,)
+    assert report.stp_cancelled == (StpCancel(order_id=own.order_id, agent_id=7, qty=5),)
     assert [f.maker_agent_id for f in report.fills] == [1]  # matched the stranger
     assert eng.cancel(own.order_id).status is CancelStatus.ALREADY_TERMINAL
 
@@ -183,3 +184,30 @@ def test_rejected_order_id_is_still_issued_for_cancel_purposes() -> None:
     rejected = order(Side.BUY, qty=0, price=10)
     eng.submit(rejected)
     assert eng.cancel(rejected.order_id).status is CancelStatus.ALREADY_TERMINAL
+
+
+def test_snapshot_depth_one_fast_path_matches_general_path() -> None:
+    """The O(1) L1 fast path must agree with the nlargest/nsmallest path,
+    including empty and one-sided books."""
+    eng = MatchingEngine()
+
+    def l1_pair(engine: MatchingEngine) -> tuple:
+        fast = engine.snapshot(ts=0, depth=1)
+        general = engine.snapshot(ts=0, depth=10)
+        return fast, general
+
+    fast, general = l1_pair(eng)  # empty book
+    assert fast.bids == () and fast.asks == ()
+
+    eng.submit(order(Side.BUY, qty=10, price=99))  # one-sided
+    fast, general = l1_pair(eng)
+    assert fast.bids == general.bids[:1]
+    assert fast.asks == ()
+
+    eng.submit(order(Side.BUY, qty=5, price=98))
+    eng.submit(order(Side.SELL, qty=7, price=101))
+    eng.submit(order(Side.SELL, qty=3, price=101))  # two orders, same level
+    fast, general = l1_pair(eng)
+    assert fast.bids == general.bids[:1]
+    assert fast.asks == general.asks[:1]
+    assert fast.asks[0].qty == 10 and fast.asks[0].order_count == 2

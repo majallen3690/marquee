@@ -337,3 +337,53 @@ order differently against same-timestamp events. Deriving its ordering from
 **Rejected.** Treating perturbations as out-of-band config mutation (unreplayable —
 fails the M5 gate); replaying by injecting "at the same wall-clock offset" (wall clock
 is banned from the sim path, ADR-002).
+
+## ADR-011: Kernel event taxonomy, wake scheduling, and delivery contract (M2)
+
+**Decision (taxonomy).** Priority classes, ordering same-timestamp events (ADR-003):
+`INTENT_ARRIVAL(0) < DELIVERY(1) < WAKE(2) < PERTURBATION(3)`. Inbound intents process
+before outbound deliveries at the same instant; wakes see a settled book; perturbations
+order last and deterministically (ADR-010).
+
+**Decision (wake scheduling).** The kernel Poisson-wakes each agent: exponential
+inter-wake intervals with a per-agent configured mean, drawn from a dedicated
+identity-keyed stream (domain 2, keyed by agent_id — separate from the agent's decision
+stream so agent-side draw counts never shift wake times). Initial wakes are drawn the
+same way — staggered starts, no thundering herd at t=0. Agents do not control the
+clock; they react in callbacks and act on wakes.
+
+**Decision (delivery contract).** Four callbacks: `on_wake`, `on_order_ack` (the
+submitter's ExecutionReport, carrying its taker fills), `on_fill` (maker side of each
+trade), `on_cancel_ack` (result of the agent's own CancelIntent, and STP removals of
+its resting orders — the engine reports `StpCancel(order_id, agent_id, qty)` so the
+kernel routes without an ownership map for fills). In a self-trade under ALLOW, one
+agent receives both its taker ack and its maker fill; inventory bookkeeping nets to
+zero with no special case.
+
+**Decision (cancel ownership).** The kernel keeps an order→owner map and answers a
+cancel of another agent's order with `UNKNOWN` — byte-identical to a bogus id, so
+probing foreign order ids yields nothing. Closes a documented M6 RL exploit (cancelling
+competitors' quotes) at the kernel, before any RL code exists.
+
+**Decision (hot-path serialization).** The kernel writes pre-serialized lines through
+`fmt_wake/fmt_ord/fmt_cxl/fmt_dlv/fmt_trade` — fixed-schema f-string builders with
+keys pre-sorted and unrolled `type(x) is int` checks (bool/numpy raise). Byte-identical
+to the reference `json.dumps(sort_keys=True, separators=(",",":"), ensure_ascii=True)`
+encoding, pinned by tests including a Hypothesis equivalence property for the generic
+`canonical_line`. This is the fast path ADR-006 pre-authorized; profiling showed
+generic dict serialization at ~36% of loop time.
+
+**Decision (buffered draws).** Latency jitter and wake-interval draws are batch-drawn
+(512/128) from their streams and consumed in order. Determinism holds — consumption is
+a pure function of the seed; the buffered idiom is simply *the* idiom from M2 onward
+(changing it later is a golden-log-regenerating change, same class as a numpy bump).
+
+**Measured (M2 gate).** Full loop (kernel + 12 agents + JSONL recorder to disk):
+median 34.9k events/sec on battery, 61k boosted — target 30k. Benchmarks now warn when
+on battery (sustained clocks sag 30–50% vs AC).
+
+**Rejected.** Agent-controlled wake requests (ABIDES-style setWakeup — more API for no
+Phase-1 need; revisit for RL if policies need variable think-time); per-event push of
+book snapshots (ADR-007 already settled pull-based); orjson dependency (fixed-schema
+f-strings beat it without a dep); trusting agents about cancel targets (exploit
+surface).

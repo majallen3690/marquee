@@ -1,0 +1,28 @@
+# M2 gate scenario: scripted multi-agent run used by the byte-identical replay
+# test. Do NOT edit without regenerating expectations — the config hash (raw
+# file bytes) is recorded in every run manifest (ADR-006).
+name: m2-scripted
+master_seed: 20260708
+horizon_ns: 5000000000        # 5 sim-seconds
+self_trade_policy: ALLOW
+latency:
+  agent_to_exchange_ns: 1000000    # 1 ms up
+  exchange_to_agent_ns: 1000000    # 1 ms down
+  jitter_ns: 200000                # +0..0.2 ms uniform, kernel stream
+agents:
+  - class: random_poster
+    id: 1
+    mean_wake_interval_ns: 5000000   # ~200 wakes/sim-sec
+    params: {anchor_price: 10000, band_ticks: 4, max_qty: 60, cancel_pct: 25}
+  - class: random_poster
+    id: 2
+    mean_wake_interval_ns: 5000000
+    params: {anchor_price: 10000, band_ticks: 6, max_qty: 40, cancel_pct: 15}
+  - class: random_poster
+    id: 3
+    mean_wake_interval_ns: 8000000
+    params: {anchor_price: 10000, band_ticks: 3, max_qty: 80, cancel_pct: 30}
+  - class: random_poster
+    id: 4
+    mean_wake_interval_ns: 3000000
+    params: {anchor_price: 10000, band_ticks: 8, max_qty: 30, cancel_pct: 10}

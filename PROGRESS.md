@@ -3,74 +3,92 @@
 Read this + DECISIONS.md + ASSUMPTIONS.md and you can continue cold. Update before
 ending any work stretch.
 
-## Current milestone: M1 — COMPLETE (gate passed). Next: M2 (sim kernel + agent API).
+## Current milestone: M2 — COMPLETE (gate passed). Next: M3 (rule-based agents).
 
-## M1 gate results (2026-07-07)
+**Reality check recorded 2026-07-08:** the user twice stated "Phase 1 is complete —
+M5's gate passed" and asked for Phase 2 (M6). The repo shows otherwise: only M0/M1/M2
+exist. Verified: git log has M0+M1 commits only (M2 committed this stretch), no
+agents/analysis/viz code, no remote, nothing in the old OneDrive folder. Proceeded per
+the brief's gating rule with M2. **The user's M6 amendment is recorded** (memory:
+m6-signoff-amendment): when M6 legitimately happens, STOP after the design note for
+user sign-off before any M7 code.
 
-- **Property tests: PASS.** `tests/test_engine_properties.py` — 200-example Hypothesis
-  suite over arbitrary op sequences, parameterized over all three self-trade policies.
-  Core oracle is a *shadow book* rebuilt purely from ExecutionReports/CancelResults and
-  compared level-by-level against `snapshot()` after every operation. Covers:
-  price-time priority (price monotone across fills, maker ids increasing within level),
-  maker price rule, conservation identity, no crossed book, no negative quantities,
-  cancel correctness (three-way status), IOC market orders, rejection paths.
-  Plus 13 example-based semantics pins in `tests/test_engine_semantics.py`.
-- **Determinism: PASS.** `tests/test_engine_determinism.py` — same 30k-message seeded
-  workload in two subprocesses with different PYTHONHASHSEED → identical SHA-256.
-- **Throughput: PASS.** `bench/lob_bench.py` (protocol per ADR-005): median
-  **406,520 msgs/sec** over 5 runs of 1M mixed messages (55% limits / 25% cancels /
-  20% markets incl. sweeps) — 4× the stated 100k target, ±1% run variance.
-- **Static analysis: PASS.** ruff clean; `uvx semgrep scan --config auto` clean;
-  `uvx bandit -r src` clean.
-- **Review caveat (honest note):** the independent 3-agent adversarial review of
-  `book.py` **errored out on session usage limits** (0 findings returned because the
-  reviewers died, not because they found nothing). A careful inline trace of the
-  assigned attack surfaces (stale-counter accounting across drop/recreate/rebuild,
-  level counter drift on fill/cancel/STP paths, FIFO through compaction, dict-order
-  determinism) found no defects, and the shadow-book suite is a strong oracle — but
-  **re-run the independent review at the start of the next session** (script saved, see
-  git history / workflow `m1-engine-review`) before building M2 on top.
+## M2 gate results (2026-07-08)
 
-## Engine summary (for cold resume)
+- **Byte-identical replay: PASS.** `tests/test_scenario_replay.py` — the committed
+  `scenarios/m2-scripted.yaml` (4 agents, 5 sim-seconds, latency jitter on) run in two
+  subprocesses with different PYTHONHASHSEED → identical SHA-256 for events.jsonl and
+  trades.jsonl; non-vacuous (both files non-empty).
+- **Order-stream replay (ADR-006 mode b): PASS.** Order stream extracted from
+  events.jsonl through a fresh engine reproduces trades.jsonl byte-for-byte.
+- **Kernel ordering tests: PASS.** Same-timestamp events dispatch by priority class
+  (arrival < delivery < wake) then insertion seq; latency round-trip timing exact;
+  maker/taker fill routing; cancel ownership enforcement; int chokepoint rejects
+  numpy/float/bool intent fields.
+- **RNG stream tests: PASS.** Identity-keyed spawning pinned: removing an agent leaves
+  other agents' streams bit-identical (ADR-006 property).
+- **Recorder byte contract: PASS.** LF-only UTF-8; fixed-schema fmt_* lines pinned
+  byte-identical to the reference encoder (+ Hypothesis equivalence property for
+  canonical_line); non-int numerics hard-error.
+- **Full-loop throughput: PASS.** `bench/sim_bench.py`: median **34,903 events/sec ON
+  BATTERY** (first run boosted: 61k) vs 30k target. Bench warns on battery; AC numbers
+  will be comfortably higher. Optimization history in ADR-011 (fixed-schema
+  serialization, O(1) L1 snapshot fast path, buffered jitter/wake draws).
+- **Static analysis: PASS.** ruff clean, semgrep clean, bandit clean (git-subprocess
+  Lows reviewed + nosec-annotated).
+- 43 tests total.
 
-`src/marquee/engine/book.py` — `MatchingEngine.submit/cancel/snapshot/best_bid/best_ask`.
-Internals per ADR-005: liveness = orders-dict membership; lazy tombstones with per-level
-compaction (dead > live and dead > 16); per-side lazy heaps with in_heap dedupe + rebuild
-when stale > live levels. Semantics per ADR-009 (maker price, IOC markets, REJECTED
-status, 3-way cancel status, self-trade policies ALLOW/CANCEL_RESTING/REJECT_TAKER with
-`stp_cancelled` reporting). Kernel assigns ids; engine enforces strict increase.
+## Standing caveat
 
-## Exact next action (M2)
+The independent multi-agent adversarial review of `engine/book.py` has now failed
+TWICE on subagent session limits (latest reset: 4:30am Asia/Calcutta). Inline invariant
+trace + the shadow-book property suite stand in; re-run the workflow
+(`m1-engine-review` script in session workflow dir) when limits allow, ideally before
+M3 builds agent behavior on top.
 
-1. Re-run the independent engine review (see caveat above); fix anything confirmed.
-2. Then M2, test-first: event-driven kernel per ADR-002/003/006/007 —
-   - `tests/test_kernel_ordering.py` first: heap total order (time, priority, seq),
-     latency application, deterministic delivery order.
-   - `src/marquee/sim/kernel.py`: clock, event queue, agent registry (stable order),
-     intent validation chokepoint (`type(x) is int` — ADR-003), id assignment,
-     ack/fill delivery with latency, wakeup scheduling.
-   - RNG: identity-keyed spawn (`SeedSequence(master, spawn_key=(domain, id))`) +
-     property test that removing one agent leaves other streams bit-identical.
-   - Recorder: JSONL writer with the exact ADR-006 byte contract + manifest.json.
-   - M2 gate: scripted multi-agent scenario replays byte-identically (subprocess,
-     different PYTHONHASHSEED); kernel event-ordering tests pass; full-loop throughput
-     ≥ 30k events/sec.
+## Architecture now standing (cold-resume summary)
+
+- `engine/` — MatchingEngine (M1): price-time priority, ADR-009 semantics, 406k msgs/s.
+- `sim/kernel.py` — SimKernel (M2): heap (t, priority, seq); wake/ack/fill/cancel-ack
+  lifecycle; identity-keyed RNG (kernel=0, agent=1, wake=2); latency model w/ jitter;
+  int chokepoint; cancel ownership; order-id assignment.
+- `sim/recorder.py` — canonical JSONL byte contract + fmt_* fast path; `sim/replay.py`
+  — replay mode (b); `sim/scenario.py` — YAML configs, manifest (seed/config-hash/git
+  provenance/versions).
+- `agents/scripted.py` — RandomPoster (M2 test fixture, not an M3 agent).
+- `scenarios/m2-scripted.yaml` — committed gate scenario.
+
+## Exact next action (M3 — rule-based agent population)
+
+Test-first, per the brief:
+1. Agents: inventory-aware market maker (quoting under inventory risk — skew quotes by
+   inventory, widen on volatility, pull quotes at inventory limits), momentum traders
+   (trend-follow on recent mid returns), noise/liquidity traders (upgrade RandomPoster
+   semantics: random marketable + resting flow). All parameterized via scenario YAML.
+2. `analysis/run_stats.py`: automated run-analysis script — spread time series, depth,
+   trade frequency, two-sidedness; configured sane bounds → pass/fail verdict.
+3. M3 gate: a committed mixed-population scenario produces a continuously two-sided
+   market over a long run — bounds verified by the script, not eyeballed.
+4. Agent-level unit tests (quoting logic, inventory skew sign, momentum signal sign)
+   + kernel integration smoke.
 
 ## Blockers / user actions needed
 
-- `gh auth login` has not been run — no GitHub remote yet. Local commits accumulate.
-- OpenBB + Alpaca MCP servers must be connected before M4.
-- Subagent session limit was hit this session (resets 11pm Asia/Calcutta) — affects
-  workflow-based review passes only; solo work unaffected.
+- `gh auth login` still not done (checked this stretch) — no remote, local commits
+  only. Once done: create public repo `marquee`, push, then tag releases at M5/M8.
+- OpenBB + Alpaca MCP servers still not connected — required before M4 calibration.
+- Subagent limits block workflow reviews (see standing caveat).
 
 ## Milestone map
 
 | Milestone | Status |
 |---|---|
 | M0 scaffold + ADRs | done |
-| M1 matching engine | done — gate passed (see caveat: re-run independent review) |
-| M2 sim kernel + agent API | next |
-| M3 rule-based agents | — |
+| M1 matching engine | done (gate passed; independent review re-run still pending) |
+| M2 sim kernel + agent API | done — gate passed |
+| M3 rule-based agents | next |
 | M4 calibration | — |
 | M5 viz + flash crash (Phase 1 ends) | — |
-| M6–M8 RL | — |
+| M6 RL design note (**STOP for user sign-off — recorded amendment**) | — |
+| M7 RL env + training | — |
+| M8 integration | — |

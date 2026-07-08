@@ -33,6 +33,7 @@ from marquee.engine.types import (
     ReportStatus,
     SelfTradePolicy,
     Side,
+    StpCancel,
     Ticks,
     TimeNs,
 )
@@ -172,7 +173,7 @@ class MatchingEngine:
         limit = order.price
         remaining = qty
         fills: list[Fill] = []
-        stp_cancelled: list[int] = []
+        stp_cancelled: list[StpCancel] = []
         stop_taker = False  # REJECT_TAKER tripped: cancel the unfilled remainder
 
         while remaining > 0 and not stop_taker:
@@ -199,7 +200,7 @@ class MatchingEngine:
                     del orders[maker_id]
                     level.qty -= maker.remaining
                     level.live -= 1
-                    stp_cancelled.append(maker_id)
+                    stp_cancelled.append(StpCancel(maker_id, maker.agent_id, maker.remaining))
                     continue
                 traded = maker.remaining if maker.remaining < remaining else remaining
                 fills.append(
@@ -272,6 +273,20 @@ class MatchingEngine:
         return CancelResult(order_id, CancelStatus.CANCELLED, resting.remaining)
 
     def snapshot(self, ts: TimeNs, depth: int = 10) -> BookSnapshot:
+        if depth == 1:
+            # O(1) amortized L1 fast path (ADR-005): agents poll this on every
+            # wake; nlargest/nsmallest below scan all levels.
+            best_bid = self._bids.best()
+            best_ask = self._asks.best()
+            bids = ()
+            asks = ()
+            if best_bid is not None:
+                level = self._bids.levels[best_bid]
+                bids = (LevelView(price=best_bid, qty=level.qty, order_count=level.live),)
+            if best_ask is not None:
+                level = self._asks.levels[best_ask]
+                asks = (LevelView(price=best_ask, qty=level.qty, order_count=level.live),)
+            return BookSnapshot(ts=ts, bids=bids, asks=asks)
         bid_levels = self._bids.levels
         ask_levels = self._asks.levels
         bids = tuple(

@@ -90,6 +90,20 @@ class Fill:
 
 
 @dataclass(frozen=True, slots=True)
+class StpCancel:
+    """A resting order removed by SelfTradePolicy.CANCEL_RESTING mid-match.
+
+    Carries owner and removed quantity because the engine is the only
+    component that knows them; the kernel routes the cancel notification to
+    agent_id without maintaining its own order-ownership map.
+    """
+
+    order_id: OrderId
+    agent_id: AgentId
+    qty: Qty  # quantity that was resting when removed
+
+
+@dataclass(frozen=True, slots=True)
 class ExecutionReport:
     """Engine response to a submit.
 
@@ -97,9 +111,9 @@ class ExecutionReport:
         order.qty == sum(f.qty for f in fills) + resting_qty + cancelled_qty
     REJECTED implies fills == (), resting_qty == 0, cancelled_qty == order.qty.
 
-    stp_cancelled lists RESTING order ids removed by SelfTradePolicy.CANCEL_RESTING
+    stp_cancelled lists resting orders removed by SelfTradePolicy.CANCEL_RESTING
     while this order was matching; the kernel turns these into cancel
-    notifications for their owner. Their quantities are outside the identity
+    notifications for their owners. Their quantities are outside the identity
     above (they belong to the maker's accounting, not the taker's).
     """
 
@@ -108,7 +122,7 @@ class ExecutionReport:
     fills: tuple[Fill, ...]
     resting_qty: Qty  # remainder now resting on the book (LIMIT only)
     cancelled_qty: Qty  # remainder cancelled (market IOC remainder, or rejection)
-    stp_cancelled: tuple[OrderId, ...] = ()
+    stp_cancelled: tuple[StpCancel, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
