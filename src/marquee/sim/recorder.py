@@ -107,6 +107,17 @@ def fmt_dlv(t: int, p: int, s: int, aid: int, dk: str, oid: int) -> str:
     return f'{{"aid":{aid},"dk":"{dk}","k":"dlv","oid":{oid},"p":{p},"s":{s},"t":{t}}}'
 
 
+def fmt_prt(t: int, p: int, s: int, aid: int, prm: str, v: int) -> str:
+    if (
+        type(t) is not int or type(p) is not int or type(s) is not int
+        or type(aid) is not int or type(v) is not int or not prm.isidentifier()
+    ):
+        raise TypeError(
+            "fmt_prt: int fields must be built-in int; param must be an identifier"
+        )
+    return f'{{"aid":{aid},"k":"prt","p":{p},"prm":"{prm}","s":{s},"t":{t},"v":{v}}}'
+
+
 def fmt_trade(
     t: int, tid: int, px: int, qty: int, tko: int, mko: int, tka: int, mka: int, tks: int,
 ) -> str:

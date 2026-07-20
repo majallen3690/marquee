@@ -3,7 +3,22 @@
 Read this + DECISIONS.md + ASSUMPTIONS.md and you can continue cold. Update before
 ending any work stretch.
 
-## Current milestone: M4 — COMPLETE (gate passed). Next: M5 (viz + flash crash; Phase 1 finale).
+## Current milestone: M5 core (crash mechanics) — COMPLETE. Next: M5 UI (DESIGN.md → bridge → viz).
+
+## M5 core results (2026-07-08)
+
+Perturbations wired end-to-end per ADR-010: `SimKernel.schedule_perturbation`
+(strictly-later effective-time rule for live insertion, Perturbable protocol,
+loud failures), MM lever params (limits/size/spread), `prt` events recorded with
+full heap keys, scenario-config `perturbations:` section. Committed
+`scenarios/m5-flash-crash.yaml` (seed 777002): calm anchored market (worst 5s
+range 28 ticks) → at t=30s maker risk appetite collapses → **107.5-tick crash in
+5 seconds, 3.84× amplification**, persistent regime change after. Gates in
+`tests/test_m5_crash.py`: crash criteria (script-checked from the YAML),
+perturbation log/schedule round-trip, replay mode (c) byte-identity across hash
+seeds. Agent-model additions (ADR-014): momentum `max_position`, noise
+`anchor_weight` — both default off; M3/M4 committed trajectories bit-unchanged
+(legacy RNG draw path preserved, verified by re-running their gates). 64 tests.
 
 **Standing context:** the user twice claimed Phase 1 / M5 complete on 2026-07-08; the
 repo disproved it (see git history — M2, M3, M4 were all built and gated on
@@ -49,26 +64,24 @@ hard-limit regime is the M5 flash-crash lever.
 - `analysis/` — run_stats (market quality vs bounds), stylized_facts (ADR-013 gate).
   Both replay the recorded order stream; CLI + library. 55 tests green; ruff clean.
 
-## Exact next action (M5 — live viz + flash-crash scenario)
+## Exact next action (M5 UI — the crash mechanics beneath it are done)
 
 Order of work (design bar rules in the brief are binding):
 1. **DESIGN.md first** — type scale, spacing, color tokens, motion rules; dense
    pro-terminal direction. Load a frontend-design skill if available. Record as ADR.
-2. **Flash-crash scenario** (`scenarios/m5-flash-crash.yaml`) — before UI: a committed
-   seed where a PERTURBATION event (ADR-010) tightening MM hard limits mid-run
-   triggers an emergent cascade. Requires wiring perturbation application in the
-   kernel (currently a loud NotImplementedError): a param-override registry the MM
-   reads. Verify replay mode (c) byte-identity — this is the M5 determinism gate.
-3. **Bridge** (`server/`): FastAPI; kernel loop in a thread with a pacing layer
+2. **Bridge** (`server/`): FastAPI; kernel loop in a thread with a pacing layer
    (ADR-002: pacing outside the kernel); WebSocket fanning out sampled L1
-   depth (snapshot cadence ~50ms), trades, stats; REST: pause/resume/perturb.
-4. **Viz** (`viz/`): Next.js + Tailwind; primitives FIRST (Panel, NumberCell, Ladder
-   row, Tape row, Sparkline) then screens; order-book depth ladder + price chart +
-   trade tape + agent-population controls. No emoji, no purple gradients, no
-   template-shadcn look.
-5. **Gate:** one command runs sim+bridge+viz; watch the crash live; perturb MM
-   inventory limit from the UI and see the regime change; Playwright screenshot pass
-   reviewed against DESIGN.md; demo GIF for README; DEMO.md (3-minute script).
+   depth (snapshot cadence ~50ms), trades, stats; REST: pause/resume/perturb —
+   perturb calls `kernel.schedule_perturbation` (live-insertion path already
+   enforces the ADR-010 effective-time rule); add the live-insertion replay (c)
+   test (extract schedule from log → re-sim → byte-identical).
+3. **Viz** (`viz/`): Next.js + Tailwind; primitives FIRST (Panel, NumberCell, Ladder
+   row, Tape row, Sparkline) then compose screens; order-book depth ladder + price
+   chart + trade tape + agent-population controls. No emoji, no purple gradients,
+   no template-shadcn look.
+4. **Gate:** one command runs sim+bridge+viz; watch the committed crash live;
+   perturb MM params from the UI and see the regime change; Playwright screenshot
+   pass reviewed against DESIGN.md; demo GIF for README; DEMO.md (3-minute script).
 
 ## Blockers / user actions needed
 

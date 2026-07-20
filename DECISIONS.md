@@ -478,3 +478,45 @@ agent stays out of Phase 1.
 the claim defended is *emergence of the facts*, with magnitudes disclosed);
 GARCH-fitting as the clustering test (heavier machinery, same conclusion as direct
 ACF thresholds, harder to explain in a demo).
+
+## ADR-014: Flash-crash scenario design (M5 core)
+
+**Decision.** `m5-flash-crash.yaml` (seed 777002, 60 sim-seconds): a calm anchored
+market for 30s, then one perturbation instant collapses both makers' risk appetite —
+`soft_limit 150/180 → 5`, `hard_limit 300/360 → 10`, `quote_size 60/80 → 5`,
+`half_spread 2/3 → 12/15`. Committed-seed result: pre-market worst 5-second range 28
+ticks; post-perturbation move **107.5 ticks down within 5 seconds** (3.84× the worst
+normal burst), then a persistent wide-and-jumpy regime. Gate is script-checked
+(`crash_criteria` in the YAML, `tests/test_m5_crash.py`) plus replay mode (c)
+byte-identity across subprocesses with different hash seeds.
+
+**Model changes this required — three failure modes found by measurement, each fix a
+piece of honest microstructure, not a scripted crash:**
+1. *Noise-owned book:* in the M3/M4 population the makers carried only 4% of executed
+   liquidity — pulling them removed nothing. Crash populations need makers to BE the
+   book (noise demoted to small fast-turnover flow; maker share is what makes "makers
+   pull back" mean something).
+2. *Unwind-momentum ratchet:* with unbounded momentum, the maker's own hard-limit
+   unwind fed the trend signal that re-pinned it — price ran thousands of ticks.
+   Fixes: momentum traders got `max_position` (every real trend-follower is
+   position-bounded), and noise got an optional value-anchored side bias
+   (Lux-Marchesi-style stabilizer; weight per x2-tick, clamped ±0.25). Both default
+   OFF and the anchor-off path preserves the exact legacy RNG draw sequence, so the
+   committed M3/M4 runs and their recorded measurements are bit-unchanged.
+3. *Self-healing ladder:* shrinking quote size alone produced no crash — makers
+   re-quoting every 10–15ms relative to the touch refill the ladder faster than any
+   momentum lookback registers a move. Liquidity must *retreat*, not just thin:
+   the half_spread blow-out is what opens the vacuum that market orders fall through.
+
+**Emergence claim, stated precisely.** The perturbation changes *risk parameters* of
+one agent class at one instant; every subsequent order, cancellation, trade, and the
+crash trajectory itself follow from agent interaction. Across neighboring seeds the
+same lever produces regime changes of varying magnitude and direction (21–107 ticks,
+up or down in the four-seed scan) — the committed seed was chosen for demo vividness,
+which is disclosed, and reproducibility is from that seed.
+
+**Rejected.** Scripting a sell program at T (the thing the project exists to not do);
+igniting via maker inventory alone (inventory at an arbitrary T is near zero in a
+calm anchored market — measured twice); making the base market fragile enough to
+crash on its own (destroys the "healthy until the lever" narrative and failed the
+amplification test).

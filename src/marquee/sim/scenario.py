@@ -27,6 +27,14 @@ class AgentSpec:
 
 
 @dataclass(frozen=True, slots=True)
+class PerturbationSpec:
+    t_ns: int
+    agent_id: int
+    param: str
+    value: int
+
+
+@dataclass(frozen=True, slots=True)
 class ScenarioConfig:
     name: str
     master_seed: int
@@ -36,6 +44,7 @@ class ScenarioConfig:
     exchange_to_agent_ns: int
     latency_jitter_ns: int
     agents: tuple[AgentSpec, ...]
+    perturbations: tuple[PerturbationSpec, ...] = ()
 
 
 def load_scenario(path: str | Path) -> tuple[ScenarioConfig, bytes]:
@@ -60,6 +69,15 @@ def load_scenario(path: str | Path) -> tuple[ScenarioConfig, bytes]:
                 params=a.get("params", {}),
             )
             for a in doc["agents"]
+        ),
+        perturbations=tuple(
+            PerturbationSpec(
+                t_ns=int(p["t_ns"]),
+                agent_id=int(p["agent_id"]),
+                param=p["param"],
+                value=int(p["value"]),
+            )
+            for p in doc.get("perturbations", [])
         ),
     )
     return config, raw
@@ -129,6 +147,10 @@ def run_scenario(config_path: str | Path, out_dir: str | Path) -> Path:
     )
     for spec in config.agents:
         kernel.register_agent(build_agent(spec), spec.mean_wake_interval_ns)
+    for perturbation in config.perturbations:
+        kernel.schedule_perturbation(
+            perturbation.t_ns, perturbation.agent_id, perturbation.param, perturbation.value
+        )
     try:
         kernel.run()
     finally:

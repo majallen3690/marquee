@@ -1,0 +1,105 @@
+﻿# M5 flash-crash scenario: a healthy market for 30 sim-seconds, then a
+# PERTURBATION event (ADR-010) collapses both market makers' inventory limits
+# and quote sizes. The crash that follows is emergent (forced unwinds into a
+# thinned book, amplified by momentum feedback), never scripted price action.
+# crash_criteria are the committed script-verified gate (test_m5_crash.py).
+name: m5-flash-crash
+master_seed: 777002
+horizon_ns: 60000000000       # 60 sim-seconds; perturbation at t=30s
+self_trade_policy: ALLOW
+latency:
+  agent_to_exchange_ns: 1000000
+  exchange_to_agent_ns: 1000000
+  jitter_ns: 200000
+# Population balance is the crash precondition: makers must BE the book
+# (measured maker share >= 60% is asserted by the gate test) so that pulling
+# them actually removes the liquidity. Noise here is small fast-turnover flow,
+# not resting depth.
+agents:
+  - class: market_maker
+    id: 1
+    mean_wake_interval_ns: 10000000
+    params: {anchor_price: 10000, half_spread: 2, quote_size: 60, skew_per_unit: 0.02,
+             soft_limit: 150, hard_limit: 300, vol_widen_factor: 0.05}
+  - class: market_maker
+    id: 2
+    mean_wake_interval_ns: 15000000
+    params: {anchor_price: 10000, half_spread: 3, quote_size: 80, skew_per_unit: 0.02,
+             soft_limit: 180, hard_limit: 360, vol_widen_factor: 0.04}
+  # Momentum cohort: position-bounded (real trend-followers are), moderate in
+  # the deep pre-T regime, devastating in the thinned post-T regime; the
+  # regime change does the amplification.
+  - class: momentum
+    id: 11
+    mean_wake_interval_ns: 40000000
+    params: {lookback_ns: 400000000, threshold_ticks: 5, order_size: 12, act_pct: 50,
+             max_position: 45, cooldown_wakes: 4}
+  - class: momentum
+    id: 12
+    mean_wake_interval_ns: 60000000
+    params: {lookback_ns: 600000000, threshold_ticks: 6, order_size: 16, act_pct: 40,
+             max_position: 60, cooldown_wakes: 5}
+  - class: momentum
+    id: 13
+    mean_wake_interval_ns: 90000000
+    params: {lookback_ns: 1000000000, threshold_ticks: 8, order_size: 22, act_pct: 35,
+             max_position: 80, cooldown_wakes: 6}
+  # Noise = flow, not depth: small orders, fast cancels, more taking.
+  - class: noise
+    id: 21
+    mean_wake_interval_ns: 20000000
+    params: {anchor_price: 10000, cancel_pct: 40, market_pct: 18, improve_pct: 6,
+             depth_ticks: 6, mean_qty: 3.0, anchor_weight: 0.0002}
+  - class: noise
+    id: 22
+    mean_wake_interval_ns: 25000000
+    params: {anchor_price: 10000, cancel_pct: 45, market_pct: 15, improve_pct: 8,
+             depth_ticks: 5, mean_qty: 2.5, anchor_weight: 0.0002}
+  - class: noise
+    id: 23
+    mean_wake_interval_ns: 30000000
+    params: {anchor_price: 10000, cancel_pct: 40, market_pct: 20, improve_pct: 5,
+             depth_ticks: 8, mean_qty: 4.0, anchor_weight: 0.0002}
+  - class: noise
+    id: 24
+    mean_wake_interval_ns: 35000000
+    params: {anchor_price: 10000, cancel_pct: 42, market_pct: 16, improve_pct: 7,
+             depth_ticks: 6, mean_qty: 3.0, anchor_weight: 0.0002}
+  - class: noise
+    id: 25
+    mean_wake_interval_ns: 40000000
+    params: {anchor_price: 10000, cancel_pct: 38, market_pct: 14, improve_pct: 8,
+             depth_ticks: 5, mean_qty: 2.0, anchor_weight: 0.0002}
+  - class: noise
+    id: 26
+    mean_wake_interval_ns: 30000000
+    params: {anchor_price: 10000, cancel_pct: 45, market_pct: 18, improve_pct: 6,
+             depth_ticks: 7, mean_qty: 3.5, anchor_weight: 0.0002}
+
+perturbations:
+  # The lever: maker risk appetite collapses — inventory limits tighten, quote
+  # size shrinks, AND quotes retreat from the touch (half_spread blows out).
+  # Liquidity doesn't just thin in real crashes, it retreats; without the
+  # retreat, 10-15ms re-quoting self-heals the ladder faster than momentum's
+  # lookback can register a move (found in tuning).
+  - {t_ns: 30000000000, agent_id: 1, param: soft_limit, value: 5}
+  - {t_ns: 30000000000, agent_id: 1, param: hard_limit, value: 10}
+  - {t_ns: 30000000000, agent_id: 1, param: quote_size, value: 5}
+  - {t_ns: 30000000000, agent_id: 1, param: half_spread, value: 12}
+  - {t_ns: 30000000000, agent_id: 2, param: soft_limit, value: 5}
+  - {t_ns: 30000000000, agent_id: 2, param: hard_limit, value: 10}
+  - {t_ns: 30000000000, agent_id: 2, param: quote_size, value: 5}
+  - {t_ns: 30000000000, agent_id: 2, param: half_spread, value: 15}
+
+crash_criteria:
+  perturbation_t_ns: 30000000000
+  pre_window_ns: 15000000000     # baseline: [T-15s, T)
+  post_window_ns: 5000000000     # crash window: [T, T+5s]
+  min_post_move_ticks: 25        # max |mid - mid_T| in the crash window
+  # Amplification compares matched window lengths: post move vs the WORST
+  # post-window-sized range anywhere in the pre window — the crash must dwarf
+  # the market's own worst normal burst, not just its average.
+  min_amplification: 2.0
+  min_two_sided_pct: 97.0        # the market survives as a market
+  # Committed-seed measurements (777002): pre worst-5s 28.0, post move 107.5
+  # DOWN, amplification 3.84.

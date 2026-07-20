@@ -21,6 +21,7 @@ class MomentumTrader:
         act_pct: int = 60,
         cooldown_wakes: int = 2,
         max_samples: int = 64,
+        max_position: int | None = None,
     ) -> None:
         self._agent_id = agent_id
         self._lookback_ns = lookback_ns
@@ -30,6 +31,11 @@ class MomentumTrader:
         self._cooldown_wakes = cooldown_wakes
         self._samples: deque[tuple[int, int]] = deque(maxlen=max_samples)  # (t, mid_x2)
         self._cooldown = 0
+        # Position limit: real trend-followers are position-bounded; unbounded
+        # one-way demand lets an MM-unwind/momentum ratchet run a market to
+        # infinity (observed in m5 tuning). None = unbounded (m3/m4 configs).
+        self._max_position = max_position
+        self.position = 0
 
     @property
     def agent_id(self) -> int:
@@ -65,11 +71,18 @@ class MomentumTrader:
             return []
         if signal == 0 or int(ctx.rng.integers(0, 100)) >= self._act_pct:
             return []
+        if self._max_position is not None:
+            if signal > 0 and self.position >= self._max_position:
+                return []
+            if signal < 0 and self.position <= -self._max_position:
+                return []
         self._cooldown = self._cooldown_wakes
         side = Side.BUY if signal > 0 else Side.SELL
         return [SubmitMarket(side, self._order_size)]
 
     def on_order_ack(self, ctx: AgentContext, report: ExecutionReport) -> list[Intent]:
+        for fill in report.fills:
+            self.position += fill.qty if report.side is Side.BUY else -fill.qty
         return []
 
     def on_fill(self, ctx: AgentContext, fill: Fill) -> list[Intent]:

@@ -32,11 +32,12 @@ from marquee.sim.protocols import (
     Agent,
     CancelIntent,
     Intent,
+    Perturbable,
     Recorder,
     SubmitLimit,
     SubmitMarket,
 )
-from marquee.sim.recorder import fmt_cxl, fmt_dlv, fmt_ord, fmt_trade, fmt_wake
+from marquee.sim.recorder import fmt_cxl, fmt_dlv, fmt_ord, fmt_prt, fmt_trade, fmt_wake
 
 _DRAW_BUFFER = 512
 
@@ -181,6 +182,26 @@ class SimKernel:
         wake_rng = rngmod.stream(self._master_seed, rngmod.DOMAIN_WAKE, aid)
         self._slots[aid] = _AgentSlot(agent, ctx, wake_rng, mean_wake_interval_ns)
 
+    def schedule_perturbation(
+        self, effective_ns: int, agent_id: AgentId, param: str, value: int
+    ) -> None:
+        """Schedule a parameter change (ADR-010). Pre-run scheduling accepts any
+        future time; once the clock has advanced, effective time must be
+        STRICTLY later than now — the live-insertion rule that makes seq
+        assignment independent of wall-clock arrival."""
+        if type(value) is not int:
+            raise TypeError(f"perturbation value must be built-in int, got {value!r}")
+        if agent_id not in self._slots:
+            raise ValueError(f"perturbation targets unknown agent_id {agent_id}")
+        if not isinstance(self._slots[agent_id].agent, Perturbable):
+            raise TypeError(f"agent {agent_id} does not implement apply_perturbation")
+        if effective_ns <= self.now and self.now > 0:
+            raise ValueError(
+                f"perturbation effective time {effective_ns} must be strictly after "
+                f"current sim time {self.now} (ADR-010)"
+            )
+        self._push(effective_ns, PriorityClass.PERTURBATION, Perturbation(agent_id, param, value))
+
     # -- scheduling ----------------------------------------------------------
 
     def _push(self, time_ns: int, priority: PriorityClass, payload: object) -> None:
@@ -236,10 +257,7 @@ class SimKernel:
             elif type(payload) is Delivery:
                 self._on_delivery(time_ns, priority, seq, payload)
             elif type(payload) is Perturbation:
-                raise NotImplementedError(
-                    "perturbation application lands at M5 (ADR-010); scheduling one "
-                    "before that is a bug, not a no-op"
-                )
+                self._on_perturbation(time_ns, priority, seq, payload)
 
     # -- dispatch ------------------------------------------------------------
 
@@ -305,6 +323,11 @@ class SimKernel:
         for sc in report.stp_cancelled:
             self._deliver(sc.agent_id, CancelResult(sc.order_id, CancelStatus.CANCELLED, sc.qty))
         self._deliver(ev.agent_id, report)
+
+    def _on_perturbation(self, t: int, p: int, s: int, ev: Perturbation) -> None:
+        self._recorder.record_line(fmt_prt(t, p, s, ev.agent_id, ev.param, ev.value))
+        agent = self._slots[ev.agent_id].agent
+        agent.apply_perturbation(ev.param, ev.value)  # type: ignore[attr-defined]
 
     def _on_delivery(self, t: int, p: int, s: int, ev: Delivery) -> None:
         payload = ev.payload

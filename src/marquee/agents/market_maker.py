@@ -71,6 +71,20 @@ class InventoryMarketMaker:
     def agent_id(self) -> int:
         return self._agent_id
 
+    def apply_perturbation(self, param: str, value: int) -> None:
+        """ADR-010 lever. Tightening hard_limit mid-run is the flash-crash
+        trigger: makers over the new limit pull a side and unwind at market."""
+        if param == "hard_limit":
+            self._hard_limit = value
+        elif param == "soft_limit":
+            self._soft_limit = value
+        elif param == "half_spread":
+            self._half_spread = value
+        elif param == "quote_size":
+            self._quote_size = value
+        else:
+            raise ValueError(f"unknown market-maker perturbation param {param!r}")
+
     # -- quoting -------------------------------------------------------------
 
     def _vol_widen(self) -> int:

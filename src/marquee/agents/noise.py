@@ -26,6 +26,7 @@ class NoiseTrader:
         depth_ticks: int = 8,
         mean_qty: float = 12.0,
         max_open: int = 24,
+        anchor_weight: float = 0.0,
     ) -> None:
         self._agent_id = agent_id
         self._anchor = anchor_price
@@ -35,6 +36,10 @@ class NoiseTrader:
         self._depth_ticks = depth_ticks
         self._mean_qty = mean_qty
         self._max_open = max_open
+        # Value anchoring (Lux-Marchesi-style stabilizer): buy probability is
+        # biased by anchor distance, per x2-tick of displacement (the weight
+        # absorbs the /2 — no mid halving, ADR-004). 0.0 disables (m3/m4).
+        self._anchor_weight = anchor_weight
         self._open: dict[int, None] = {}
 
     @property
@@ -53,14 +58,23 @@ class NoiseTrader:
             del self._open[oldest]
             return [CancelIntent(oldest)]
 
-        buy = int(rng.integers(0, 2)) == 0
-        side = Side.BUY if buy else Side.SELL
-        if roll < self._cancel_pct + self._market_pct:
-            return [SubmitMarket(side, self._qty(ctx))]
-
         book = ctx.book(depth=1)
         best_bid = book.best_bid
         best_ask = book.best_ask
+
+        if self._anchor_weight and best_bid is not None and best_ask is not None:
+            displacement_x2 = 2 * self._anchor - (best_bid + best_ask)
+            bias = self._anchor_weight * displacement_x2
+            p_buy = 0.5 + max(-0.25, min(0.25, bias))
+            buy = float(rng.random()) < p_buy
+        else:
+            # Exact legacy draw path: anchor_weight == 0 configs (m3/m4) must
+            # keep bit-identical stream consumption or their committed
+            # measurements go stale.
+            buy = int(rng.integers(0, 2)) == 0
+        side = Side.BUY if buy else Side.SELL
+        if roll < self._cancel_pct + self._market_pct:
+            return [SubmitMarket(side, self._qty(ctx))]
         if buy:
             anchor = best_bid if best_bid is not None else (
                 best_ask - 1 if best_ask is not None else self._anchor

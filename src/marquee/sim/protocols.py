@@ -96,6 +96,15 @@ class Agent(Protocol):
 
 
 @runtime_checkable
+class Perturbable(Protocol):
+    """Agents that accept mid-run parameter changes (ADR-010). Unknown params
+    must raise ValueError — a perturbation silently ignored would desync the
+    demo narrative from reality."""
+
+    def apply_perturbation(self, param: str, value: int) -> None: ...
+
+
+@runtime_checkable
 class Recorder(Protocol):
     """Sink for the kernel's event stream. JSONL writer in M2; the same stream
     fans out to the WebSocket bridge in M5 (one producer, two sinks).

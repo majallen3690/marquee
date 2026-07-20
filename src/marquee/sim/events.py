@@ -43,7 +43,9 @@ class Wake:
 
 @dataclass(frozen=True, slots=True)
 class Perturbation:
-    """Reserved for M5 (ADR-010). Scheduling one before the application registry
-    exists is a loud error in the kernel, not a silent no-op."""
+    """A mid-run parameter change targeting one agent (ADR-010). Recorded with
+    its full heap key so perturbed runs re-simulate byte-identically."""
 
-    payload: dict
+    agent_id: AgentId
+    param: str
+    value: int
