@@ -129,11 +129,19 @@ def build_agent(spec: AgentSpec) -> Agent:
     return factory(spec.agent_id, spec.params)
 
 
-def run_scenario(config_path: str | Path, out_dir: str | Path) -> Path:
-    """Run a scenario end to end; writes events.jsonl, trades.jsonl, manifest.json."""
+def build_session(
+    config: ScenarioConfig,
+    out_dir: str | Path,
+    include_config_perturbations: bool = True,
+) -> tuple[SimKernel, JsonlRecorder, dict[int, Agent]]:
+    """Construct a ready-to-run kernel + recorder + agent map for a config.
+
+    Shared by run_scenario, the live bridge (which steps the kernel itself and
+    inserts perturbations mid-run), and replay-mode-(c) tests (which substitute
+    an extracted perturbation schedule for the config's own).
+    """
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
-    config, raw = load_scenario(config_path)
     engine = MatchingEngine(self_trade_policy=config.self_trade_policy)
     recorder = JsonlRecorder(out / "events.jsonl", out / "trades.jsonl")
     kernel = SimKernel(
@@ -145,12 +153,24 @@ def run_scenario(config_path: str | Path, out_dir: str | Path) -> Path:
         exchange_to_agent_ns=config.exchange_to_agent_ns,
         latency_jitter_ns=config.latency_jitter_ns,
     )
+    agents: dict[int, Agent] = {}
     for spec in config.agents:
-        kernel.register_agent(build_agent(spec), spec.mean_wake_interval_ns)
-    for perturbation in config.perturbations:
-        kernel.schedule_perturbation(
-            perturbation.t_ns, perturbation.agent_id, perturbation.param, perturbation.value
-        )
+        agent = build_agent(spec)
+        agents[spec.agent_id] = agent
+        kernel.register_agent(agent, spec.mean_wake_interval_ns)
+    if include_config_perturbations:
+        for perturbation in config.perturbations:
+            kernel.schedule_perturbation(
+                perturbation.t_ns, perturbation.agent_id, perturbation.param, perturbation.value
+            )
+    return kernel, recorder, agents
+
+
+def run_scenario(config_path: str | Path, out_dir: str | Path) -> Path:
+    """Run a scenario end to end; writes events.jsonl, trades.jsonl, manifest.json."""
+    out = Path(out_dir)
+    config, raw = load_scenario(config_path)
+    kernel, recorder, _ = build_session(config, out)
     try:
         kernel.run()
     finally:

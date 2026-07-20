@@ -167,10 +167,18 @@ class SimKernel:
         )
         self._queue: list[tuple[int, int, int, object]] = []
         self._seq = 0
+        # Perturbations use their OWN sequence counter (ADR-010): if they drew
+        # from the global one, a live-inserted perturbation would consume a
+        # mid-run seq that re-simulation consumes pre-run, shifting the seq of
+        # every subsequent event and breaking replay mode (c) byte-identity.
+        # Cross-class heap ordering never reaches the third tuple element
+        # (priority classes differ), so the two counters cannot collide.
+        self._perturbation_seq = 0
         self._slots: dict[int, _AgentSlot] = {}  # insertion-ordered = registration order
         self._next_order_id = 1
         self._order_owner: dict[int, int] = {}  # ownership check on cancels (ADR-011)
         self.events_processed = 0
+        self._started = False
 
     # -- setup ---------------------------------------------------------------
 
@@ -200,7 +208,16 @@ class SimKernel:
                 f"perturbation effective time {effective_ns} must be strictly after "
                 f"current sim time {self.now} (ADR-010)"
             )
-        self._push(effective_ns, PriorityClass.PERTURBATION, Perturbation(agent_id, param, value))
+        heapq.heappush(
+            self._queue,
+            (
+                effective_ns,
+                int(PriorityClass.PERTURBATION),
+                self._perturbation_seq,
+                Perturbation(agent_id, param, value),
+            ),
+        )
+        self._perturbation_seq += 1
 
     # -- scheduling ----------------------------------------------------------
 
@@ -237,17 +254,25 @@ class SimKernel:
 
     # -- main loop -----------------------------------------------------------
 
-    def run(self) -> None:
+    def start(self) -> None:
+        """Schedule initial wakes (idempotent). Initial wakes are drawn, not
+        zero: staggered starts, from the same identity-keyed stream as every
+        later wake."""
+        if self._started:
+            return
+        self._started = True
         for slot in self._slots.values():
-            # Initial wakes are drawn, not zero: staggered starts, and drawn
-            # from the same identity-keyed stream as every later wake.
-            self.now = 0
             self._schedule_next_wake(slot)
+
+    def run_until(self, target_ns: int) -> None:
+        """Process every event with time <= min(target_ns, horizon). Peek-based:
+        events beyond the target stay queued (resumable stepping — the bridge's
+        pacing loop lives on this)."""
+        self.start()
+        target = min(target_ns, self._horizon)
         queue = self._queue
-        while queue:
+        while queue and queue[0][0] <= target:
             time_ns, priority, seq, payload = heapq.heappop(queue)
-            if time_ns > self._horizon:
-                break
             self.now = time_ns
             self.events_processed += 1
             if type(payload) is Wake:
@@ -258,6 +283,9 @@ class SimKernel:
                 self._on_delivery(time_ns, priority, seq, payload)
             elif type(payload) is Perturbation:
                 self._on_perturbation(time_ns, priority, seq, payload)
+
+    def run(self) -> None:
+        self.run_until(self._horizon)
 
     # -- dispatch ------------------------------------------------------------
 

@@ -11,6 +11,23 @@ from pathlib import Path
 
 from marquee.engine import MatchingEngine, Order, OrderType, SelfTradePolicy, Side
 from marquee.sim.recorder import fmt_trade
+from marquee.sim.scenario import PerturbationSpec
+
+
+def extract_perturbations(events_path: str | Path) -> list[PerturbationSpec]:
+    """The extraction half of replay mode (c): recover the perturbation
+    schedule — including live-inserted ones — from a recorded run."""
+    schedule: list[PerturbationSpec] = []
+    with open(events_path, encoding="utf-8", newline="\n") as f:
+        for raw in f:
+            ev = json.loads(raw)
+            if ev["k"] == "prt":
+                schedule.append(
+                    PerturbationSpec(
+                        t_ns=ev["t"], agent_id=ev["aid"], param=ev["prm"], value=ev["v"]
+                    )
+                )
+    return schedule
 
 
 def replay_order_stream(
