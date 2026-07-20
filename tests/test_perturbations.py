@@ -1,6 +1,5 @@
 """Perturbation-path unit tests (ADR-010 wiring, M5 core)."""
 
-import numpy as np
 import pytest
 
 from marquee.agents import InventoryMarketMaker, MomentumTrader, NoiseTrader
