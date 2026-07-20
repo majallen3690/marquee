@@ -29,8 +29,15 @@ would change if it's wrong. Corrections welcome at any time.
    Substitutions: WebSearch for research passes; local git + gh CLI for GitHub.
    Semgrep works natively on Windows via `uvx semgrep` (verified at M1, v1.168.0) —
    no fallback needed; bandit is run additionally since it's free.
-   **OpenBB/Alpaca are genuinely required by M4** for calibration reference data —
-   connect them before M4 starts.
+
+9. **M4 thresholds defended from literature, not live data (2026-07-08).** OpenBB and
+   Alpaca MCPs were still unconnected when M4 ran, so ADR-013 thresholds cite the
+   canonical empirical literature (Cont 2001; Roll 1984; Bouchaud/Lillo-Farmer) from
+   model knowledge instead of freshly pulled reference series. Blast radius: the
+   *ranges* used are textbook-stable, but the numbers should be cross-checked against
+   real intraday data once the MCPs connect — if that shifts a threshold, re-run the
+   committed scenario (it passes with wide margin on 3 of 4 facts, and the 4th —
+   trade-sign ACF — exceeds real values in a direction ADR-013 already discloses).
 
 7. **Tick size default $0.01, integer quantities.** Standard equity convention; it's a
    per-scenario config value, not a constant (ADR-004).

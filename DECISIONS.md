@@ -436,3 +436,45 @@ terminal horizon that don't exist here; the discrete skew/widen/limit scheme exh
 the same qualitative behavior and every parameter is a demo-explainable integer);
 momentum via limit orders (dilutes the feedback loop that M5's crash needs); pure-
 random noise without spread-improvement (spreads never tighten, book goes static).
+
+## ADR-013: Stylized-facts calibration thresholds (M4)
+
+**Decision.** The committed `m4-calibrated.yaml` (M3 population, 180 sim-seconds,
+seed 424242; 100ms mid sampling → 1,799 log-returns) must pass all thresholds below,
+computed by `marquee.analysis.stylized_facts` from the recorded run. Reference values
+are the canonical empirical literature — Cont (2001) "Empirical properties of asset
+returns: stylized facts and statistical issues"; Roll (1984) for tick-scale bid-ask
+bounce; Bouchaud et al. / Lillo & Farmer for order-flow long memory. Cross-checking
+against fresh OpenBB/Alpaca reference data is queued for when those MCP servers are
+connected (ASSUMPTIONS.md #9) — thresholds below are set from literature plus honest
+margins, not tuned to one lucky run.
+
+| Fact | Threshold | Real-market reference | Measured (committed seed) |
+|---|---|---|---|
+| Fat tails | excess kurtosis ≥ 2.0 | ~2–50 intraday, falling under time aggregation (Cont) | **25.1** |
+| No linear predictability | \|ACF₁\| ≤ 0.30; \|ACF₃₊\| ≤ 0.15 | ACF₁ < 0 at tick scale (bounce, Roll); insignificant beyond minutes (Cont) | **−0.098; ≤ 0.054** |
+| Volatility clustering | ACF of r² at lag 1 ≥ 0.10; ≥ 6/10 lags positive | 0.1–0.4 at lag 1, slow (power-law) decay (Cont) | **0.27; 10/10 positive** |
+| Order-flow clustering | trade-sign ACF₁ ≥ 0.05 | 0.1–0.3, long memory (Bouchaud; Lillo-Farmer) | **0.51** |
+| Sample size | ≥ 1,500 returns | — | 1,799 |
+
+**Honest deviations, stated up front.** (a) The lag-3+ raw-ACF bound (0.15) is looser
+than real-market values (~0.05): with 13 agents and ~1,800 samples the standard error
+alone is ~0.024 and small-population oscillation is real; measured values (≤ 0.054)
+are far inside the bound anyway. (b) Trade-sign ACF₁ = 0.51 *exceeds* the real-market
+0.1–0.3: our momentum traders herd and nobody order-splits, so flow memory is
+stronger than an anonymized real book. Sign and slow decay — the fact itself — are
+right; the magnitude is an artifact of population size and is recorded as a known
+limitation (feeds LIMITATIONS.md at M8), not hidden by loosening the gate direction.
+(c) The market stays too tight (median spread 1 tick, p95 1): competitive quoting in
+a 13-agent world converges harder than real books. Also recorded.
+
+**Decision (no fundamental agent).** The ADR-012 question — would calibration require
+a mean-reverting fundamental? — is answered: no. All four facts emerge from
+MM inventory dynamics + momentum feedback + noise flow alone. The fundamental/value
+agent stays out of Phase 1.
+
+**Rejected.** Tuning the population until magnitudes match real markets exactly
+(overfitting a 13-agent sim to a thousands-of-participants market misrepresents both;
+the claim defended is *emergence of the facts*, with magnitudes disclosed);
+GARCH-fitting as the clustering test (heavier machinery, same conclusion as direct
+ACF thresholds, harder to explain in a demo).

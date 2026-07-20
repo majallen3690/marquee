@@ -3,92 +3,90 @@
 Read this + DECISIONS.md + ASSUMPTIONS.md and you can continue cold. Update before
 ending any work stretch.
 
-## Current milestone: M2 — COMPLETE (gate passed). Next: M3 (rule-based agents).
+## Current milestone: M4 — COMPLETE (gate passed). Next: M5 (viz + flash crash; Phase 1 finale).
 
-**Reality check recorded 2026-07-08:** the user twice stated "Phase 1 is complete —
-M5's gate passed" and asked for Phase 2 (M6). The repo shows otherwise: only M0/M1/M2
-exist. Verified: git log has M0+M1 commits only (M2 committed this stretch), no
-agents/analysis/viz code, no remote, nothing in the old OneDrive folder. Proceeded per
-the brief's gating rule with M2. **The user's M6 amendment is recorded** (memory:
-m6-signoff-amendment): when M6 legitimately happens, STOP after the design note for
-user sign-off before any M7 code.
+**Standing context:** the user twice claimed Phase 1 / M5 complete on 2026-07-08; the
+repo disproved it (see git history — M2, M3, M4 were all built and gated on
+2026-07-08). The user's M6 amendment stands recorded (memory: m6-signoff-amendment):
+after the M6 design note, STOP for sign-off before any M7 code.
 
-## M2 gate results (2026-07-08)
+## M4 gate results (2026-07-08)
 
-- **Byte-identical replay: PASS.** `tests/test_scenario_replay.py` — the committed
-  `scenarios/m2-scripted.yaml` (4 agents, 5 sim-seconds, latency jitter on) run in two
-  subprocesses with different PYTHONHASHSEED → identical SHA-256 for events.jsonl and
-  trades.jsonl; non-vacuous (both files non-empty).
-- **Order-stream replay (ADR-006 mode b): PASS.** Order stream extracted from
-  events.jsonl through a fresh engine reproduces trades.jsonl byte-for-byte.
-- **Kernel ordering tests: PASS.** Same-timestamp events dispatch by priority class
-  (arrival < delivery < wake) then insertion seq; latency round-trip timing exact;
-  maker/taker fill routing; cancel ownership enforcement; int chokepoint rejects
-  numpy/float/bool intent fields.
-- **RNG stream tests: PASS.** Identity-keyed spawning pinned: removing an agent leaves
-  other agents' streams bit-identical (ADR-006 property).
-- **Recorder byte contract: PASS.** LF-only UTF-8; fixed-schema fmt_* lines pinned
-  byte-identical to the reference encoder (+ Hypothesis equivalence property for
-  canonical_line); non-int numerics hard-error.
-- **Full-loop throughput: PASS.** `bench/sim_bench.py`: median **34,903 events/sec ON
-  BATTERY** (first run boosted: 61k) vs 30k target. Bench warns on battery; AC numbers
-  will be comfortably higher. Optimization history in ADR-011 (fixed-schema
-  serialization, O(1) L1 snapshot fast path, buffered jitter/wake draws).
-- **Static analysis: PASS.** ruff clean, semgrep clean, bandit clean (git-subprocess
-  Lows reviewed + nosec-annotated).
-- 43 tests total.
+`scenarios/m4-calibrated.yaml` — M3 population, 180 sim-seconds, seed 424242, ~7.5k
+trades, 1,799 mid log-returns at 100ms. All ADR-013 thresholds pass via
+`marquee.analysis.stylized_facts` (test: `tests/test_m4_gate.py`), and the long run
+still passes the M3 market-quality bounds:
 
-## Standing caveat
+| Fact | Threshold | Measured |
+|---|---|---|
+| Fat tails (excess kurtosis) | ≥ 2.0 | **25.1** |
+| Raw-return ACF lag 1 / lags 3+ | ≤ 0.30 / ≤ 0.15 | **−0.098 / ≤ 0.054** |
+| Squared-return ACF lag 1 / positive lags | ≥ 0.10 / ≥ 6 of 10 | **0.27 / 10 of 10** |
+| Trade-sign ACF lag 1 | ≥ 0.05 | **0.51** |
 
-The independent multi-agent adversarial review of `engine/book.py` has now failed
-TWICE on subagent session limits (latest reset: 4:30am Asia/Calcutta). Inline invariant
-trace + the shadow-book property suite stand in; re-run the workflow
-(`m1-engine-review` script in session workflow dir) when limits allow, ideally before
-M3 builds agent behavior on top.
+Honest deviations (magnitudes vs real markets) are disclosed in ADR-013 and feed
+LIMITATIONS.md at M8: trade-sign memory too strong (momentum herding, no order
+splitting), spread too tight (13-agent competition), lag-3+ ACF bound looser than
+real-market values (small-population statistics). OpenBB/Alpaca cross-check of
+thresholds queued (ASSUMPTIONS #9) — literature-defended meanwhile (Cont 2001, Roll
+1984, Bouchaud / Lillo-Farmer).
 
-## Architecture now standing (cold-resume summary)
+## M3 gate results (2026-07-08)
 
-- `engine/` — MatchingEngine (M1): price-time priority, ADR-009 semantics, 406k msgs/s.
-- `sim/kernel.py` — SimKernel (M2): heap (t, priority, seq); wake/ack/fill/cancel-ack
-  lifecycle; identity-keyed RNG (kernel=0, agent=1, wake=2); latency model w/ jitter;
-  int chokepoint; cancel ownership; order-id assignment.
-- `sim/recorder.py` — canonical JSONL byte contract + fmt_* fast path; `sim/replay.py`
-  — replay mode (b); `sim/scenario.py` — YAML configs, manifest (seed/config-hash/git
-  provenance/versions).
-- `agents/scripted.py` — RandomPoster (M2 test fixture, not an M3 agent).
-- `scenarios/m2-scripted.yaml` — committed gate scenario.
+`scenarios/m3-mixed.yaml` (2 inventory MMs / 3 momentum / 8 noise, 30 sim-sec, seed
+31337): 99.97% two-sided, median spread 1 tick, p95 1, max 14, L1 depth ~155/side,
+43 trades/sim-sec — verified by `marquee.analysis.run_stats` bounds committed in the
+scenario (test: `tests/test_m3_gate.py`). ADR-012 records the agent designs; the MM
+hard-limit regime is the M5 flash-crash lever.
 
-## Exact next action (M3 — rule-based agent population)
+## Architecture (cold-resume summary)
 
-Test-first, per the brief:
-1. Agents: inventory-aware market maker (quoting under inventory risk — skew quotes by
-   inventory, widen on volatility, pull quotes at inventory limits), momentum traders
-   (trend-follow on recent mid returns), noise/liquidity traders (upgrade RandomPoster
-   semantics: random marketable + resting flow). All parameterized via scenario YAML.
-2. `analysis/run_stats.py`: automated run-analysis script — spread time series, depth,
-   trade frequency, two-sidedness; configured sane bounds → pass/fail verdict.
-3. M3 gate: a committed mixed-population scenario produces a continuously two-sided
-   market over a long run — bounds verified by the script, not eyeballed.
-4. Agent-level unit tests (quoting logic, inventory skew sign, momentum signal sign)
-   + kernel integration smoke.
+- `engine/` — M1 matching engine (406k msgs/s, shadow-book property suite).
+- `sim/` — M2 kernel (byte-identical replay, 35k events/s full loop), recorder with
+  exact byte contract + fmt_* fast path, scenario runner + manifest, replay mode (b).
+- `agents/` — M3: InventoryMarketMaker (skew/widen/limits/unwind), MomentumTrader,
+  NoiseTrader, + RandomPoster (M2 fixture). ExecutionReport echoes side/price/qty.
+- `analysis/` — run_stats (market quality vs bounds), stylized_facts (ADR-013 gate).
+  Both replay the recorded order stream; CLI + library. 55 tests green; ruff clean.
+
+## Exact next action (M5 — live viz + flash-crash scenario)
+
+Order of work (design bar rules in the brief are binding):
+1. **DESIGN.md first** — type scale, spacing, color tokens, motion rules; dense
+   pro-terminal direction. Load a frontend-design skill if available. Record as ADR.
+2. **Flash-crash scenario** (`scenarios/m5-flash-crash.yaml`) — before UI: a committed
+   seed where a PERTURBATION event (ADR-010) tightening MM hard limits mid-run
+   triggers an emergent cascade. Requires wiring perturbation application in the
+   kernel (currently a loud NotImplementedError): a param-override registry the MM
+   reads. Verify replay mode (c) byte-identity — this is the M5 determinism gate.
+3. **Bridge** (`server/`): FastAPI; kernel loop in a thread with a pacing layer
+   (ADR-002: pacing outside the kernel); WebSocket fanning out sampled L1
+   depth (snapshot cadence ~50ms), trades, stats; REST: pause/resume/perturb.
+4. **Viz** (`viz/`): Next.js + Tailwind; primitives FIRST (Panel, NumberCell, Ladder
+   row, Tape row, Sparkline) then screens; order-book depth ladder + price chart +
+   trade tape + agent-population controls. No emoji, no purple gradients, no
+   template-shadcn look.
+5. **Gate:** one command runs sim+bridge+viz; watch the crash live; perturb MM
+   inventory limit from the UI and see the regime change; Playwright screenshot pass
+   reviewed against DESIGN.md; demo GIF for README; DEMO.md (3-minute script).
 
 ## Blockers / user actions needed
 
-- `gh auth login` still not done (checked this stretch) — no remote, local commits
-  only. Once done: create public repo `marquee`, push, then tag releases at M5/M8.
-- OpenBB + Alpaca MCP servers still not connected — required before M4 calibration.
-- Subagent limits block workflow reviews (see standing caveat).
+- `gh auth login` still not done as of the M4 commit — no remote. Once done: create
+  public repo, push all commits, tag M5 when it lands.
+- OpenBB + Alpaca MCPs still unconnected — ADR-013 cross-check queued on them.
+- Independent engine review still pending (two attempts died on subagent limits).
 
 ## Milestone map
 
 | Milestone | Status |
 |---|---|
 | M0 scaffold + ADRs | done |
-| M1 matching engine | done (gate passed; independent review re-run still pending) |
-| M2 sim kernel + agent API | done — gate passed |
-| M3 rule-based agents | next |
-| M4 calibration | — |
-| M5 viz + flash crash (Phase 1 ends) | — |
-| M6 RL design note (**STOP for user sign-off — recorded amendment**) | — |
+| M1 matching engine | done (independent review re-run pending) |
+| M2 sim kernel + agent API | done |
+| M3 rule-based agents | done |
+| M4 calibration (stylized facts) | done |
+| M5 viz + flash crash (Phase 1 ends) | next |
+| M6 RL design note (**STOP for user sign-off**) | — |
 | M7 RL env + training | — |
 | M8 integration | — |
