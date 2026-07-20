@@ -387,3 +387,52 @@ Phase-1 need; revisit for RL if policies need variable think-time); per-event pu
 book snapshots (ADR-007 already settled pull-based); orjson dependency (fixed-schema
 f-strings beat it without a dep); trusting agents about cancel targets (exploit
 surface).
+
+## ADR-012: Rule-based agent population (M3)
+
+**Decision (population).** Three classes, all YAML-parameterized, all randomness from
+each agent's identity-keyed stream, floats confined to decision math with `int` at the
+intent boundary (ADR-004):
+
+1. **InventoryMarketMaker** — cancel-and-replace quoting each wake. Quotes anchor on
+   `best_bid`/`best_ask` directly (never a halved mid — ADR-004): bid at
+   `best_bid + 1 − half − widen − skew`, ask at `best_ask − 1 + half + widen − skew`,
+   clamped uncrossed and ≥ 1. `skew = round(inventory × skew_per_unit)` (doubled past
+   the soft limit) shifts *both* quotes against inventory; `widen` is a realized-vol
+   proxy (range of recent `mid_x2` × factor — the factor absorbs the /2 so no halving
+   idiom exists to copy). Three regimes: symmetric under soft limit; shrunken
+   risk-side size past it; at the hard limit the risk-increasing side is pulled and
+   the excess unwound with a market order. **The hard limit is the M5 flash-crash
+   lever.** Empty/one-sided book → wide two-sided quotes around the last reference or
+   anchor, so the market can restart. Report echoes (side/price/qty added to
+   ExecutionReport this milestone) make ack bookkeeping order-independent — under
+   latency jitter, same-wake acks can arrive reordered and positional correlation
+   would mislabel quote sides.
+2. **MomentumTrader** — market-buys after ≥ threshold up-moves of the mid over a
+   lookback, sells the mirror; per-wake activation probability + cooldown. The
+   deliberate positive-feedback destabilizer.
+3. **NoiseTrader** — per-wake mixture: cancel oldest own order / market order /
+   resting limit near the touch, occasionally *inside* the spread (uninformed
+   improvement is how spreads tighten without any agent knowing a "true" price).
+   Exponential-ish sizes; bounded open-order set.
+
+**Decision (no fundamental-value agent yet).** ABIDES anchors prices with a
+mean-reverting fundamental + value traders. Deliberately omitted at M3: the gate is
+market *quality* (two-sidedness, spread, depth, activity), which MM + noise provide
+with all-relative quoting; price is then a random walk driven by flow imbalance.
+Revisit at M4 **only if** stylized-facts calibration demands mean reversion — logged
+in ASSUMPTIONS.md.
+
+**Decision (gate bounds, committed in m3-mixed.yaml).** 30 sim-seconds, 13 agents
+(2 MM / 3 momentum / 8 noise): two-sided ≥ 99% of 10ms samples; median spread ≤ 6
+ticks, p95 ≤ 20; mean L1 depth ≥ 10 units/side; longest one-sided stretch ≤ 300ms
+(covers cold start); trades/sim-sec in [10, 400]. Measured on the committed seed:
+99.97% two-sided, median spread 1 tick, p95 1, L1 depth ~155/side, 43 trades/sec —
+comfortably inside, and the tight spread is the *expected* outcome of competitive
+quoting plus improving noise flow (liquid real-world names sit at 1 tick too).
+
+**Rejected.** Avellaneda-Stoikov closed-form quoting (needs a vol estimate and a
+terminal horizon that don't exist here; the discrete skew/widen/limit scheme exhibits
+the same qualitative behavior and every parameter is a demo-explainable integer);
+momentum via limit orders (dilutes the feedback loop that M5's crash needs); pure-
+random noise without spread-improvement (spreads never tighten, book goes static).

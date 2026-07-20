@@ -160,6 +160,9 @@ class MatchingEngine:
             return ExecutionReport(
                 order_id=oid,
                 status=ReportStatus.REJECTED,
+                side=order.side,
+                price=order.price,
+                qty=qty,
                 fills=(),
                 resting_qty=0,
                 cancelled_qty=qty,
@@ -245,6 +248,9 @@ class MatchingEngine:
         return ExecutionReport(
             order_id=oid,
             status=ReportStatus.ACCEPTED,
+            side=order.side,
+            price=order.price,
+            qty=qty,
             fills=tuple(fills),
             resting_qty=resting,
             cancelled_qty=cancelled,

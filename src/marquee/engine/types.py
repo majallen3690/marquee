@@ -115,10 +115,18 @@ class ExecutionReport:
     while this order was matching; the kernel turns these into cancel
     notifications for their owners. Their quantities are outside the identity
     above (they belong to the maker's accounting, not the taker's).
+
+    side/price/qty echo the submitted order so agents can interpret an ack
+    without correlating it to their submission order — under latency jitter,
+    same-wake acks may arrive reordered, so positional correlation is a bug
+    factory (price is as submitted: 0 for MARKET orders).
     """
 
     order_id: OrderId
     status: ReportStatus
+    side: Side
+    price: Ticks
+    qty: Qty
     fills: tuple[Fill, ...]
     resting_qty: Qty  # remainder now resting on the book (LIMIT only)
     cancelled_qty: Qty  # remainder cancelled (market IOC remainder, or rejection)

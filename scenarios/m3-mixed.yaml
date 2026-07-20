@@ -1,0 +1,87 @@
+# M3 gate scenario: mixed rule-based population must sustain a continuously
+# two-sided market over a long run. Bounds are checked by
+# marquee.analysis.run_stats — the gate is a script verdict, not an eyeball.
+name: m3-mixed
+master_seed: 31337
+horizon_ns: 30000000000       # 30 sim-seconds
+self_trade_policy: ALLOW
+latency:
+  agent_to_exchange_ns: 1000000
+  exchange_to_agent_ns: 1000000
+  jitter_ns: 200000
+agents:
+  # Two market makers with different risk appetites (heterogeneity keeps the
+  # book alive when one is inventory-constrained).
+  - class: market_maker
+    id: 1
+    mean_wake_interval_ns: 10000000    # re-quotes ~100x/sim-sec
+    params: {anchor_price: 10000, half_spread: 2, quote_size: 25, skew_per_unit: 0.02,
+             soft_limit: 120, hard_limit: 240, vol_widen_factor: 0.15}
+  - class: market_maker
+    id: 2
+    mean_wake_interval_ns: 15000000
+    params: {anchor_price: 10000, half_spread: 3, quote_size: 40, skew_per_unit: 0.03,
+             soft_limit: 150, hard_limit: 300, vol_widen_factor: 0.10}
+  # Momentum traders: the positive-feedback destabilizers.
+  - class: momentum
+    id: 11
+    mean_wake_interval_ns: 50000000
+    params: {lookback_ns: 500000000, threshold_ticks: 3, order_size: 12, act_pct: 60}
+  - class: momentum
+    id: 12
+    mean_wake_interval_ns: 80000000
+    params: {lookback_ns: 800000000, threshold_ticks: 4, order_size: 18, act_pct: 50}
+  - class: momentum
+    id: 13
+    mean_wake_interval_ns: 120000000
+    params: {lookback_ns: 1200000000, threshold_ticks: 5, order_size: 25, act_pct: 40}
+  # Noise traders: background liquidity supply and demand.
+  - class: noise
+    id: 21
+    mean_wake_interval_ns: 20000000
+    params: {anchor_price: 10000, cancel_pct: 20, market_pct: 12, improve_pct: 15,
+             depth_ticks: 8, mean_qty: 12.0}
+  - class: noise
+    id: 22
+    mean_wake_interval_ns: 25000000
+    params: {anchor_price: 10000, cancel_pct: 25, market_pct: 10, improve_pct: 20,
+             depth_ticks: 6, mean_qty: 8.0}
+  - class: noise
+    id: 23
+    mean_wake_interval_ns: 30000000
+    params: {anchor_price: 10000, cancel_pct: 15, market_pct: 15, improve_pct: 10,
+             depth_ticks: 10, mean_qty: 15.0}
+  - class: noise
+    id: 24
+    mean_wake_interval_ns: 35000000
+    params: {anchor_price: 10000, cancel_pct: 20, market_pct: 12, improve_pct: 15,
+             depth_ticks: 8, mean_qty: 10.0}
+  - class: noise
+    id: 25
+    mean_wake_interval_ns: 40000000
+    params: {anchor_price: 10000, cancel_pct: 20, market_pct: 8, improve_pct: 25,
+             depth_ticks: 5, mean_qty: 6.0}
+  - class: noise
+    id: 26
+    mean_wake_interval_ns: 30000000
+    params: {anchor_price: 10000, cancel_pct: 25, market_pct: 14, improve_pct: 12,
+             depth_ticks: 12, mean_qty: 20.0}
+  - class: noise
+    id: 27
+    mean_wake_interval_ns: 45000000
+    params: {anchor_price: 10000, cancel_pct: 18, market_pct: 10, improve_pct: 18,
+             depth_ticks: 7, mean_qty: 9.0}
+  - class: noise
+    id: 28
+    mean_wake_interval_ns: 50000000
+    params: {anchor_price: 10000, cancel_pct: 22, market_pct: 11, improve_pct: 14,
+             depth_ticks: 9, mean_qty: 11.0}
+
+analysis_bounds:
+  min_two_sided_pct: 99.0
+  max_median_spread: 6
+  max_p95_spread: 20
+  min_mean_l1_depth: 10
+  max_one_sided_ns: 300000000     # 300 ms — covers the cold-start window
+  min_trades_per_sec: 10
+  max_trades_per_sec: 400

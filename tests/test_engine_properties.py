@@ -93,9 +93,15 @@ def apply_and_check(engine: MatchingEngine, shadow: ShadowBook, order: Order) ->
     pre_best_opposite = engine.best_ask if order.side is Side.BUY else engine.best_bid
     report = engine.submit(order)
 
+    # The report echoes the submitted order (agents interpret acks without
+    # positional correlation).
+    assert report.side is order.side
+    assert report.price == order.price
+    assert report.qty == order.qty
+
     # Conservation identity — universal, including rejections (ADR-009 rule 3).
     assert (
-        order.qty
+        report.qty
         == sum(f.qty for f in report.fills) + report.resting_qty + report.cancelled_qty
     )
 

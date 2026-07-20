@@ -78,16 +78,22 @@ def test_execution_report_conservation_shape() -> None:
     report = ExecutionReport(
         order_id=2,
         status=ReportStatus.ACCEPTED,
+        side=Side.BUY,
+        price=0,
+        qty=100,
         fills=(fill,),
         resting_qty=0,
         cancelled_qty=70,
     )
-    submitted = 100
+    submitted = report.qty
     assert submitted == sum(f.qty for f in report.fills) + report.resting_qty + report.cancelled_qty
 
     rejected = ExecutionReport(
         order_id=3,
         status=ReportStatus.REJECTED,
+        side=Side.SELL,
+        price=10,
+        qty=50,
         fills=(),
         resting_qty=0,
         cancelled_qty=50,
