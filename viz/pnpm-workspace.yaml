@@ -1,0 +1,4 @@
+# sharp powers Next.js image optimization. This UI renders no images
+# (DESIGN.md), so its native build step is intentionally skipped.
+allowBuilds:
+  sharp: false

@@ -3,7 +3,31 @@
 Read this + DECISIONS.md + ASSUMPTIONS.md and you can continue cold. Update before
 ending any work stretch.
 
-## Current milestone: M5 core (crash mechanics) — COMPLETE. Next: M5 UI (DESIGN.md → bridge → viz).
+## Current milestone: M5 — COMPLETE (gate passed live in a browser). Phase 1 done. Next: M6 RL design note → **STOP for user sign-off**.
+
+## M5 gate results (2026-07-08, verified in a real browser via Playwright)
+
+`uv run marquee-demo` → FastAPI serves the built Next.js export + live feed at
+:8420, opens the browser. Verified end to end:
+- Market runs live: sim clock, ~128k events, ladder/chart/tape all streaming.
+- **Committed crash visible** at t=30s behind the amber PERTURB rule.
+- **Live UI perturbation works**: clicked COLLAPSE MAKER RISK at sim 00:25.909,
+  got a second PERTURB rule and an immediate regime change (volatility burst,
+  then a ~250-tick tear when the config perturbation compounded it). The ask
+  side stripped to 2 levels vs 9 bids — liquidity retreat rendered as data.
+- Screenshots reviewed against DESIGN.md: `docs/m5-pre-crash.png` (full 60s run)
+  and `docs/m5-live-perturb.png` (live lever). Two layout bugs found in review
+  and fixed (horizontal scrollbar from the transport row; dock overflow).
+- DEMO.md written (3-minute script). DESIGN.md + ADR-015/016 recorded.
+
+**Determinism bug found and fixed during this milestone** (see ADR-015): recorded
+perturbation sequence must be *processing* order, not push order — otherwise a
+live insertion that fires before a config perturbation inverts the `s` field on
+re-simulation and breaks byte-identity. Found by reading the live demo's actual
+event log, not by the test suite; now pinned by a coexistence test.
+
+**Remaining M5 polish (not gate-blocking):** demo GIF for the README was not
+captured (`docs/` has the two stills instead); the M5 tag awaits `gh auth login`.
 
 ## M5 core results (2026-07-08)
 
@@ -64,24 +88,29 @@ hard-limit regime is the M5 flash-crash lever.
 - `analysis/` — run_stats (market quality vs bounds), stylized_facts (ADR-013 gate).
   Both replay the recorded order stream; CLI + library. 55 tests green; ruff clean.
 
-## Exact next action (M5 UI — the crash mechanics beneath it are done)
+## Exact next action (M6 — RL design note, then STOP)
 
-Order of work (design bar rules in the brief are binding):
-1. **DESIGN.md first** — type scale, spacing, color tokens, motion rules; dense
-   pro-terminal direction. Load a frontend-design skill if available. Record as ADR.
-2. **Bridge** (`server/`): FastAPI; kernel loop in a thread with a pacing layer
-   (ADR-002: pacing outside the kernel); WebSocket fanning out sampled L1
-   depth (snapshot cadence ~50ms), trades, stats; REST: pause/resume/perturb —
-   perturb calls `kernel.schedule_perturbation` (live-insertion path already
-   enforces the ADR-010 effective-time rule); add the live-insertion replay (c)
-   test (extract schedule from log → re-sim → byte-identical).
-3. **Viz** (`viz/`): Next.js + Tailwind; primitives FIRST (Panel, NumberCell, Ladder
-   row, Tape row, Sparkline) then compose screens; order-book depth ladder + price
-   chart + trade tape + agent-population controls. No emoji, no purple gradients,
-   no template-shadcn look.
-4. **Gate:** one command runs sim+bridge+viz; watch the committed crash live;
-   perturb MM params from the UI and see the regime change; Playwright screenshot
-   pass reviewed against DESIGN.md; demo GIF for README; DEMO.md (3-minute script).
+**Phase 1 is complete.** M6 is a *writing* milestone: no RL code, no env, no
+training scripts. Write into DECISIONS.md (ADR-017):
+1. Observation space per agent class (what the RL market maker sees: own
+   inventory/limits, L1+depth, recent volatility, time — all from the existing
+   pull-based `ctx.book()` contract, no new engine surface).
+2. Action space (quote offsets + sizes as discrete tick offsets, or skip/pull).
+3. The market-maker problem framed precisely (objective, horizon, episode
+   boundary, what "good" means).
+4. **Reward design with explicit anti-degeneracy analysis** — enumerate and give
+   a concrete mitigation each for: no-trade equilibrium, spread blow-out,
+   inventory dumping, reward hacking via self-trades (note: `SelfTradePolicy`
+   already exists as a config enum precisely for this — ADR-009 rule 5) or other
+   simulator exploits, and collapse under self-play non-stationarity.
+5. Algorithm choice (PPO baseline unless argued otherwise) and curriculum
+   (train against the rule-based population first, then mixed).
+6. Evaluation metrics that distinguish "learned to trade" from "exploited the
+   simulator" — including the degeneracy detectors the M7 gate needs.
+
+Then **STOP and present it to the user for sign-off** before any M7 code. This
+is a standing user amendment (2026-07-08), recorded in memory
+(`m6-signoff-amendment`) and non-negotiable.
 
 ## Blockers / user actions needed
 
@@ -99,7 +128,7 @@ Order of work (design bar rules in the brief are binding):
 | M2 sim kernel + agent API | done |
 | M3 rule-based agents | done |
 | M4 calibration (stylized facts) | done |
-| M5 viz + flash crash (Phase 1 ends) | next |
-| M6 RL design note (**STOP for user sign-off**) | — |
+| M5 viz + flash crash (**Phase 1 complete**) | done — gate passed live |
+| M6 RL design note (**STOP for user sign-off**) | next |
 | M7 RL env + training | — |
 | M8 integration | — |

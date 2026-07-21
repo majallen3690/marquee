@@ -1,0 +1,77 @@
+@import "tailwindcss";
+@import "@fontsource/ibm-plex-mono/400.css";
+@import "@fontsource/ibm-plex-mono/500.css";
+@import "@fontsource/ibm-plex-mono/600.css";
+
+/* DESIGN.md tokens — the ONLY place colors and type sizes are defined. */
+@theme {
+  --color-surface-0: #0b0f0d;
+  --color-surface-1: #101512;
+  --color-surface-2: #161d19;
+  --color-hairline: #1e2a24;
+  --color-ink-1: #d6e2da;
+  --color-ink-2: #5c6e64;
+  --color-ink-3: #33413a;
+  --color-bid: #33e087;
+  --color-ask: #f4544c;
+  --color-accent: #ffb454;
+
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+
+  --text-mid: 22px;
+  --text-figure: 13px;
+  --text-dense: 12px;
+  --text-micro: 11px;
+  --text-axis: 10px;
+}
+
+html,
+body {
+  height: 100%;
+  overflow: hidden; /* the instrument never scrolls (DESIGN.md) */
+  background: var(--color-surface-0);
+  color: var(--color-ink-1);
+  font-family: var(--font-mono);
+  font-size: var(--text-figure);
+  font-variant-numeric: tabular-nums;
+}
+
+::selection {
+  background: var(--color-accent);
+  color: var(--color-surface-0);
+}
+
+*,
+*::before,
+*::after {
+  border-radius: 0 !important; /* instruments have edges */
+}
+
+/* Motion rule 2: changed figures flash semantic color, 300ms linear decay. */
+@keyframes cell-flash-bid {
+  from { background-color: color-mix(in srgb, var(--color-bid) 25%, transparent); }
+  to { background-color: transparent; }
+}
+@keyframes cell-flash-ask {
+  from { background-color: color-mix(in srgb, var(--color-ask) 25%, transparent); }
+  to { background-color: transparent; }
+}
+@keyframes cell-flash-plain {
+  from { background-color: color-mix(in srgb, var(--color-ink-1) 18%, transparent); }
+  to { background-color: transparent; }
+}
+.flash-bid { animation: cell-flash-bid 300ms linear; }
+.flash-ask { animation: cell-flash-ask 300ms linear; }
+.flash-plain { animation: cell-flash-plain 300ms linear; }
+
+/* Structural full-viewport grid (composition, not styling). */
+.app-grid {
+  display: grid;
+  height: 100vh;
+  grid-template-columns: 232px 1fr 296px;
+  grid-template-rows: 28px minmax(0, 1fr) 150px;
+  grid-template-areas:
+    "header header header"
+    "dock chart book"
+    "dock tape book";
+}

@@ -174,6 +174,7 @@ class SimKernel:
         # Cross-class heap ordering never reaches the third tuple element
         # (priority classes differ), so the two counters cannot collide.
         self._perturbation_seq = 0
+        self._perturbation_processed = 0
         self._slots: dict[int, _AgentSlot] = {}  # insertion-ordered = registration order
         self._next_order_id = 1
         self._order_owner: dict[int, int] = {}  # ownership check on cancels (ADR-011)
@@ -353,7 +354,17 @@ class SimKernel:
         self._deliver(ev.agent_id, report)
 
     def _on_perturbation(self, t: int, p: int, s: int, ev: Perturbation) -> None:
-        self._recorder.record_line(fmt_prt(t, p, s, ev.agent_id, ev.param, ev.value))
+        # Record PROCESSING order, not push order. Push order differs between a
+        # live run (config perturbations pushed pre-run, live ones pushed later
+        # with higher seq even when they fire earlier) and its re-simulation
+        # (whole extracted schedule pushed pre-run in time order). Processing
+        # order is identical in both, so recording it keeps replay mode (c)
+        # byte-identical when config and live perturbations coexist.
+        processed_seq = self._perturbation_processed
+        self._perturbation_processed += 1
+        self._recorder.record_line(
+            fmt_prt(t, p, processed_seq, ev.agent_id, ev.param, ev.value)
+        )
         agent = self._slots[ev.agent_id].agent
         agent.apply_perturbation(ev.param, ev.value)  # type: ignore[attr-defined]
 

@@ -12,7 +12,12 @@ from pathlib import Path
 
 from marquee.engine import SelfTradePolicy
 from marquee.sim.replay import extract_perturbations
-from marquee.sim.scenario import AgentSpec, ScenarioConfig, build_session
+from marquee.sim.scenario import (
+    AgentSpec,
+    PerturbationSpec,
+    ScenarioConfig,
+    build_session,
+)
 
 HORIZON = 12_000_000_000
 
@@ -58,6 +63,34 @@ def test_live_inserted_perturbation_resimulates_byte_identically(tmp_path) -> No
 
     # Re-simulation: same config, extracted schedule pre-scheduled before start.
     kernel2, recorder2, _ = build_session(make_config(schedule), tmp_path / "resim")
+    kernel2.run()
+    recorder2.close()
+
+    assert output_bytes(tmp_path / "live") == output_bytes(tmp_path / "resim")
+
+
+def test_live_insertion_before_a_config_perturbation_still_replays(tmp_path) -> None:
+    """The hard case: the scenario already carries perturbations AND the user
+    inserts one live that fires EARLIER. Push order then differs from the
+    re-simulation's (whole schedule pre-scheduled in time order), so anything
+    derived from push order must not reach the log."""
+    config_perturbation = PerturbationSpec(
+        t_ns=9_000_000_000, agent_id=1, param="half_spread", value=9
+    )
+    kernel, recorder, _ = build_session(
+        make_config([config_perturbation]), tmp_path / "live"
+    )
+    kernel.run_until(4_000_000_000)
+    kernel.schedule_perturbation(kernel.now + 1, 1, "quote_size", 6)  # fires FIRST
+    kernel.run()
+    recorder.close()
+
+    schedule = extract_perturbations(tmp_path / "live" / "events.jsonl")
+    assert [p.param for p in schedule] == ["quote_size", "half_spread"]  # time order
+
+    kernel2, recorder2, _ = build_session(
+        make_config(schedule), tmp_path / "resim", include_config_perturbations=True
+    )
     kernel2.run()
     recorder2.close()
 

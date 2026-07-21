@@ -520,3 +520,74 @@ igniting via maker inventory alone (inventory at an arbitrary T is near zero in 
 calm anchored market — measured twice); making the base market fragile enough to
 crash on its own (destroys the "healthy until the lever" narrative and failed the
 amplification test).
+
+## ADR-015: Live bridge — pacing, fan-out, and the perturbation seq trap (M5)
+
+**Decision (architecture).** `marquee.server`: a `LiveSession` owning one kernel
+stepped by wall-clock pacing, and a FastAPI app with one pacing task, N WebSocket
+subscribers, and a small REST surface (`/api/meta`, `/api/perturb`, `/api/control`).
+The kernel gained `start()` / `run_until(target_ns)` — peek-based stepping that never
+discards events — and `build_session()` is shared by `run_scenario`, the bridge, and
+replay tests. Pacing lives strictly outside the sim path (ADR-002); the guarantee is
+tested, not asserted: stepping in 250ms increments produces byte-identical logs to a
+single `run()`.
+
+**Decision (transport).** Frames at 20 Hz carry L1 depth (12 levels/side), the last
+60 trades wholesale (stateless — the client keys rows by trade id, so there is no
+cursor protocol to desynchronize), maker inventory/limits, and the perturbation list.
+Slow subscribers drop stale frames rather than queue them. `uvicorn` is pinned
+*with* `websockets`: bare uvicorn has no WebSocket implementation and degrades to
+"Unsupported upgrade request", which surfaces only as a permanently reconnecting UI.
+
+**Decision (the seq trap — a determinism bug this milestone found and fixed).**
+Perturbations must not touch the kernel's global insertion counter, and their
+recorded sequence must be *processing* order, not push order. Two distinct failures:
+1. *Global counter:* a live-inserted perturbation consumes a mid-run seq that
+   re-simulation consumes pre-run, shifting the seq of every subsequent event.
+   Fixed with a dedicated perturbation counter (cross-class heap comparisons never
+   reach the third tuple element, so the counters cannot collide).
+2. *Push vs processing order:* when a scenario carries its own perturbations AND the
+   user inserts one live that fires earlier, push order (config first, live later)
+   differs from re-simulation's (whole extracted schedule pushed in time order).
+   Behavior is identical but the recorded `s` field inverts, breaking byte-identity.
+   Fixed by recording a processing-order counter.
+
+Failure 2 survived the first fix and a passing live-insertion test — that test used a
+config with no perturbations of its own, so the two orders coincided. It was caught
+by *reading the live demo's actual event log*, and is now pinned by a test where
+config and live perturbations coexist with the live one firing first. Lesson worth
+keeping: determinism tests must exercise the case where two independent orderings
+disagree, or they only prove the easy half.
+
+**Rejected.** Running the kernel in a thread with a queue to the event loop (the
+executor hop is simpler and the lock is uncontended); server-side mid history
+(client-side accumulation costs nothing and survives reconnects); incremental tape
+diffs (a cursor protocol to get wrong, for 60 rows).
+
+## ADR-016: Visual system — instrument, not dashboard (M5)
+
+**Decision.** Full system in DESIGN.md; the load-bearing choices: one dark palette
+(cold near-black, phosphor green bid / red ask, amber reserved exclusively for the
+human's hand — controls and the perturbation marker), IBM Plex Mono at five sizes
+with hierarchy from size/weight/case only, hairline 1px separations with zero border
+radius and zero shadows anywhere, and a full-viewport non-scrolling grid.
+
+Motion is deliberately near-absent: data never animates position, and the single
+effect in the product is a 300ms linear color decay on changed figures. That flash
+is the heartbeat of the interface; anything else moving would compete with it.
+
+The ladder is the product and gets the design weight: center-out layout with the
+mid as the largest figure on screen, depth bars as 18%-alpha semantic fill that
+*are* the depth visualization (no separate depth chart), and a designed
+`— NO BIDS —` state that the flash crash actually makes real.
+
+**Enforcement.** Styling lives only in `components/primitives.tsx` and the token
+block in `globals.css`; screens compose primitives. The canvas chart is the one
+component that needs literal colors — it reads them from the CSS custom properties
+rather than duplicating hex values, so tokens stay single-source.
+
+**Rejected.** shadcn/ui (its defaults are the exact template look the brief bans, and
+this UI needs seven bespoke primitives, not fifty generic ones); a charting library
+(canvas is ~80 lines and the design demands specific gridline/annotation behavior);
+Framer Motion (the design's motion budget is one CSS keyframe); light mode
+(instruments have one face).

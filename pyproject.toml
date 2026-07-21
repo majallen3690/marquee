@@ -13,10 +13,21 @@ dependencies = [
     # Config parsing only — never determinism-sensitive: the config hash covers
     # raw file bytes, not any YAML re-serialization (ADR-006).
     "pyyaml>=6.0.2",
+    # M5 bridge (outside the sim path — pacing/serving only, ADR-015).
+    "fastapi>=0.115",
+    "uvicorn>=0.32",
+    # Bare uvicorn ships no WebSocket implementation; without this the feed
+    # silently degrades to "Unsupported upgrade request" and the UI shows
+    # FEED LOST forever.
+    "websockets>=13.0",
 ]
+
+[project.scripts]
+marquee-demo = "marquee.server.__main__:main"
 
 [dependency-groups]
 dev = [
+    "httpx>=0.27",
     "pytest>=8.3",
     "hypothesis>=6.115",
     "ruff>=0.8",

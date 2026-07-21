@@ -133,17 +133,21 @@ def build_session(
     config: ScenarioConfig,
     out_dir: str | Path,
     include_config_perturbations: bool = True,
-) -> tuple[SimKernel, JsonlRecorder, dict[int, Agent]]:
+    recorder: object | None = None,
+) -> tuple[SimKernel, object, dict[int, Agent]]:
     """Construct a ready-to-run kernel + recorder + agent map for a config.
 
-    Shared by run_scenario, the live bridge (which steps the kernel itself and
-    inserts perturbations mid-run), and replay-mode-(c) tests (which substitute
-    an extracted perturbation schedule for the config's own).
+    Shared by run_scenario, the live bridge (which steps the kernel itself,
+    passes a tee recorder, and inserts perturbations mid-run), and
+    replay-mode-(c) tests (which substitute an extracted perturbation schedule
+    for the config's own). A caller-supplied recorder is used as-is; default is
+    a JsonlRecorder writing into out_dir.
     """
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
     engine = MatchingEngine(self_trade_policy=config.self_trade_policy)
-    recorder = JsonlRecorder(out / "events.jsonl", out / "trades.jsonl")
+    if recorder is None:
+        recorder = JsonlRecorder(out / "events.jsonl", out / "trades.jsonl")
     kernel = SimKernel(
         master_seed=config.master_seed,
         engine=engine,

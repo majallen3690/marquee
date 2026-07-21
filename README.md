@@ -18,8 +18,15 @@ is financial advice. No real orders are placed anywhere.**
 | M2 | Simulation kernel + agent API (byte-identical replay, 35k events/sec) | done |
 | M3 | Rule-based agents — emergent two-sided market, script-gated | done |
 | M4 | Calibration: fat tails, volatility clustering, order-flow memory all emerge | done |
-| M5 | Live visualization + emergent flash-crash demo | next |
-| M6–M8 | Multi-agent RL (design note, training, integration) | — |
+| M5 | Live visualization + emergent flash-crash demo | done |
+| M6–M8 | Multi-agent RL (design note, training, integration) | next |
+
+**Phase 1 is complete.** `uv run marquee-demo` opens the live instrument: watch a
+flash crash emerge from agent interaction, pull the market-maker risk lever
+yourself, and watch the regime change. Every run — including one you perturb by
+hand — reproduces byte-for-byte from its seed. See [DEMO.md](DEMO.md).
+
+![the instrument, mid-crash](docs/m5-live-perturb.png)
 
 ## Quickstart
 
@@ -29,6 +36,18 @@ Requires Python 3.13+ and [uv](https://docs.astral.sh/uv/).
 uv sync
 uv run pytest
 ```
+
+To run the live demo, build the front end once (needs Node 22+ and pnpm), then
+start it:
+
+```
+cd viz && pnpm install && pnpm build && cd ..
+uv run marquee-demo
+```
+
+The bridge serves the built UI and the live feed at http://127.0.0.1:8420/ and
+opens a browser. Without the front-end build the API still runs; only the page
+is missing.
 
 ## Layout
 
