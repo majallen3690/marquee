@@ -591,3 +591,84 @@ this UI needs seven bespoke primitives, not fifty generic ones); a charting libr
 (canvas is ~80 lines and the design demands specific gridline/annotation behavior);
 Framer Motion (the design's motion budget is one CSS keyframe); light mode
 (instruments have one face).
+
+## ADR-017: RL design — degeneracies removed by construction, not by penalty (M6)
+
+**Full analysis: [RL_DESIGN.md](RL_DESIGN.md).** It lives in its own file because it
+is a reviewable design note, not a few-line decision record; the binding decisions
+are recorded here.
+
+**Governing principle.** Reward penalties are negotiable — the optimizer hunts for
+the cheapest way to satisfy them. Wherever a degeneracy can be removed by
+construction (action space, environment rules, accounting), it is removed there;
+reward shaping handles only the residue. The action space and the P&L accounting
+are therefore the load-bearing parts of this design, not the reward function.
+
+**Scope.** One learning agent: a market maker replacing one rule-based
+`InventoryMarketMaker`. Momentum and noise stay rule-based — a second learner
+would make a negative result uninterpretable (was it the agent, or the moving
+environment?).
+
+**Action space (MultiDiscrete, 9×9×3, one quote update per step).** Bid/ask offsets
+relative to the touch, plus size. **No taker action. No quote-withdrawal action.**
+This makes no-trade, unbounded spread blow-out, inventory dumping, and message spam
+*unreachable* rather than merely penalized. Mandatory two-sided quoting is a
+designated-market-maker obligation (the regime NYSE DMMs and Nasdaq registered
+market makers actually operate under), and the rule-based baseline plays under the
+same hard-limit forced-liquidation rule, so the comparison stays fair.
+
+**Observation (~33 dims).** Stationary and relative only. Excluded on purpose:
+absolute price, wall-clock/sim time, other agents' private state, the perturbation
+schedule. New engine plumbing required in M7: queue-ahead quantity for an order id.
+
+**Accounting (the real exploit closures).** Mark to an **own-order-excluded mid**
+(blocks manufacturing unrealized P&L by shifting the quoted mid);
+`SelfTradePolicy = CANCEL_RESTING` for all RL scenarios (the enum has existed since
+ADR-009 rule 5 for exactly this); **terminal inventory liquidated by walking the
+book**, never marked at mid. Wealth change decomposes exactly into spread capture
+`S` and inventory P&L `I` — the basis of both the reward and the
+speculator-vs-market-maker test.
+
+**Reward.** `r = S + (I − η·max(0, I)) − γ·(q/q_max)²` — asymmetrically dampened
+P&L (Spooner et al. 2018: keep all downside of holding, damp the upside, so
+directional bets are negative-expectation while incidental inventory is fine),
+plus a normalized running inventory penalty. `η = 0.5` baseline; `γ` swept and
+reported with the sweep. **The reward is a shaped training signal; the gate is
+unshaped risk-adjusted P&L.**
+
+**Two project-specific degeneracies** the generic literature does not cover, both
+of which would have inflated every number in Phase 2: **scenario-script
+memorization** (the M8 crash fires at a fixed t=30s — mitigated by randomized
+episode offsets, randomized perturbation timing, held-out perturbation times) and
+**seeded-order-flow memorization** (rule-based agents are deterministic given
+identity-keyed streams, so a fixed training seed set lets the policy memorize
+literal order flow — mitigated by per-episode seed randomization and a disjoint,
+committed held-out seed set).
+
+**Algorithm.** PPO, 2×64 MLP. On-policy stability under a shifting opponent
+population, no replay buffer on a consumer machine, native MultiDiscrete, widely
+understood hyperparameters. Rejected: DQN/Rainbow (replay memory, factored-action
+awkwardness, off-policy staleness against a moving population), SAC (continuous-
+first, no benefit on a discrete quote grid). Tile-coded SARSA is retained as a
+cheap *baseline*, not the method.
+
+**Curriculum.** Stage 0 no competing MM → Stage 1 full calibrated population
+(**the gate scenario**) → Stage 2 frozen checkpoint as opponent → Stage 3 stretch
+PFSP over a checkpoint pool. Rule-based agents present at every stage as a
+stationary anchor; adaptive opposition only ever via frozen checkpoints.
+
+**Gate (M7), measurable.** Beat the rule-based MM on risk-adjusted P&L (mean
+episode P&L / std) over ≥20 held-out seeds, with zero of detectors G1–G10 tripped
+and no >50% collapse on ablations A1–A6. The ablation battery is the general test
+of "skill transfers, exploits do not" — including A5, changing the marking rule:
+if P&L depends on how we mark, it was never real.
+
+**Compute.** ~16× real-time per env (measured: 35k events/wall-sec; ~2,175
+events/sim-sec in the M5 run) → 1M steps in roughly 20–60 min across 6 envs. M7
+measures before trusting this arithmetic; all runs checkpoint and resume.
+
+**Stated risks.** The one-tick spread may leave too thin an edge to learn from;
+the baseline could be weak (bounded by the fixed-width quoting curve); detectors
+catch known failure modes only; **a negative result is acceptable and will be
+published as one** — Phase 1 was built to stand alone precisely so Phase 2 can
+fail honestly.

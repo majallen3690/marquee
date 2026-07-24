@@ -65,5 +65,7 @@ server/                 FastAPI websocket bridge (M5)
 ## Design docs
 
 - [DECISIONS.md](DECISIONS.md) — architecture decision records (start here)
+- [RL_DESIGN.md](RL_DESIGN.md) — Phase 2 design note: observation/action spaces,
+  reward, and the anti-degeneracy analysis (written before any RL code)
 - [ASSUMPTIONS.md](ASSUMPTIONS.md) — working assumptions and their blast radius
 - [PROGRESS.md](PROGRESS.md) — current milestone, exact next action

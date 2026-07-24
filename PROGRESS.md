@@ -3,7 +3,51 @@
 Read this + DECISIONS.md + ASSUMPTIONS.md and you can continue cold. Update before
 ending any work stretch.
 
-## Current milestone: M5 — COMPLETE (gate passed live in a browser). Phase 1 done. Next: M6 RL design note → **STOP for user sign-off**.
+## Current milestone: M6 — COMPLETE. ⛔ **STOPPED FOR USER SIGN-OFF. No M7 code until the user approves the anti-degeneracy analysis.**
+
+## M6 results (2026-07-21) — RL design note, no RL code written
+
+Per the user's amendment to the brief (recorded in memory: `m6-signoff-amendment`),
+this milestone ends in a hard stop for review. Deliverable:
+**[RL_DESIGN.md](RL_DESIGN.md)**, with binding decisions mirrored as **ADR-017** in
+DECISIONS.md. Grounded in the literature via WebSearch (Perplexity/Firecrawl MCPs
+still unconnected): Spooner et al. 2018 (asymmetric dampening), Gašperov &
+Kostanjčar (the documented never-trade optimum), ABIDES-gym, self-play/PFSP survey.
+
+**Governing idea:** reward penalties are negotiable — an optimizer finds the
+cheapest way to satisfy them. So degeneracies are removed *by construction*
+wherever possible, and reward shaping handles only the residue:
+
+| Degeneracy | Removed how |
+|---|---|
+| No-trade equilibrium | No quote-withdrawal action exists (mandatory two-sided quoting, DMM-style obligation) |
+| Spread blow-out | Offsets capped at 8 ticks + rule-based MMs stay in the population and take the flow |
+| Inventory dumping | **No taker action in the action space at all**; forced liquidation is an environment rule, identical for the baseline |
+| Self-trade / mid manipulation | `CANCEL_RESTING` policy; **own-order-excluded marking mid**; terminal liquidation walks the book |
+| Self-play collapse | Rule-based population as permanent stationary anchor; adaptive opposition only via frozen checkpoints; PFSP a stretch goal |
+
+Plus two project-specific degeneracies the literature does not cover: **scenario-
+script memorization** (M8's crash fires at a fixed t=30s) and **seeded-order-flow
+memorization** (rule-based agents are deterministic per identity-keyed seed) —
+both would have silently inflated every Phase 2 number.
+
+Reward: `r = S + (I − η·max(0,I)) − γ·(q/q_max)²` on an exact spread-capture /
+inventory-P&L decomposition. Algorithm: PPO, 2×64 MLP. Gate restated measurably:
+beat the rule-based MM on risk-adjusted P&L over ≥20 held-out seeds with zero of
+detectors G1–G10 tripped and no >50% ablation collapse (A1–A6).
+
+### On sign-off, M7 begins in this order
+1. **Measure** training throughput before sizing any run (§13 of RL_DESIGN.md) —
+   the estimate is ~16× real-time per env, but M7 verifies rather than trusts it.
+2. Engine plumbing, with tests, engine invariants unchanged: queue-ahead quantity
+   for an order id; own-order-excluded mid; snapshot excluding one agent.
+3. PettingZoo-style env wrapping `SimKernel` (reuse `build_session`; stepped
+   execution already exists via `run_until`).
+4. **Detectors G1–G10 and ablations A1–A6 implemented *before* training**, so the
+   first trained policy meets an already-tested harness.
+5. PPO training script — checkpointed, resumable; Stage 0 → Stage 1 curriculum.
+
+## Previous milestone: M5 — COMPLETE (gate passed live in a browser). Phase 1 done.
 
 ## M5 gate results (2026-07-08, verified in a real browser via Playwright)
 
