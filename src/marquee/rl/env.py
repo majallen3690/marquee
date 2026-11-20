@@ -60,6 +60,10 @@ class EnvConfig:
     controller: str = "learned"  # or "rule": the baseline in the same seat
     episode_steps: int = 300  # 30 sim-seconds
     min_start_s: float = 10.0
+    # Training caps the start: each reset simulates the market up to the start, and a
+    # start anywhere in 10-150 s spends most compute on warm-up. Start still varies
+    # (D6); evaluation uses the full range, so held-out starts include unseen times.
+    max_start_s: float | None = None
     eta: float = 0.5
     gamma: float = 0.01
     latency_jitter: float = 0.5  # latency scaled by U[1 − j, 1 + j] per episode
@@ -93,6 +97,8 @@ class MarketMakingEnv(gym.Env):
         self.base_size: int = self._seat_params["quote_size"]
         self.q_max: int = self._seat_params["hard_limit"]
         latest = base.horizon_ns - (self.cfg.episode_steps + 1) * STEP_NS
+        if self.cfg.max_start_s is not None:
+            latest = min(latest, int(self.cfg.max_start_s * 1e9))
         self._start_steps = (int(self.cfg.min_start_s * 1e9) // STEP_NS, latest // STEP_NS)
         if self._start_steps[0] > self._start_steps[1]:
             raise ValueError("scenario horizon too short for this episode length")

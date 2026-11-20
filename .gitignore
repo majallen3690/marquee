@@ -22,3 +22,4 @@ runs/
 .vscode/
 .idea/
 viz/public/replay/
+runs_*.log

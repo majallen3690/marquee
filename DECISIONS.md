@@ -816,3 +816,47 @@ alone leans up (22 of 30 seeds, p = 0.016), unexplained.
 
 **Rejected.** A variance-based metric in place of the gate's: keeping the committed
 gate's own metric makes every number comparable with ADR-020 and the demo.
+
+## ADR-023: M7 setup — sign-off, gate market, a stronger gate, paired entrants
+
+**M6 sign-off.** The author opened M7 on 2026-11-20 ("m7 begin"), signing off the M6
+design (RL_DESIGN.md, ADR-017). The November proposal is adopted with it: the M7 gate is
+§9's, strengthened below; the question "does a learned maker soften or deepen the lever's
+effect?" becomes M8's headline, measured with the paired 30-seed design (ADR-020/022).
+Timebox: three weeks, to 2026-12-11; without a gate result by then Phase 1 ships alone.
+
+**Measured before sizing (§13).** The bare simulator runs at about 75x real time
+(~150-180k events/s, no recording). One environment managed ~420 steps/s, but resets
+dominated: each episode first simulates the market up to its random start. With training
+starts capped at 40 s, 16 parallel environments give ~1,080 steps/s, so 1M steps take
+about 15 minutes.
+
+**Decisions.**
+1. **Gate market: `scenarios/m7-makers.yaml`, the M5 population with no lever.** In the
+   M4 calibrated market the rule-based makers are the resting side of 0.3-2% of volume
+   (noise traders provide the liquidity); beating one there proves nothing. In the M5
+   population maker 1 is the resting side of ~35% of volume and maker 2 of ~12%. M8
+   then adds the lever to the same population.
+2. **A stronger gate.** A fixed rule ("join the best price on both sides, full size")
+   already beats the rule-based maker on 32 of 40 held-out episodes; the rule-based maker
+   prices off the book, often its own quote, and is picked off by the trend-followers
+   (risk-adjusted P&L -0.66). So the learned maker must beat, on HELD_OUT, both the
+   rule-based maker *and the best fixed quoting rule*, chosen like a policy on training
+   seeds (27 symmetric rules), with no detector tripped and no ablation collapse.
+3. **Retire and replace, so comparisons are paired.** At the episode start the seat's
+   rule-based maker cancels its quotes and leaves; a fresh entrant takes the seat flat:
+   the policy, or a fresh rule-based maker with the same parameters for the baseline.
+   Same seed and start step give an identical market up to the entrant's arrival
+   (tested). Without this the baseline would carry inventory the policy never had.
+4. **The learned maker quotes relative to the book without its own orders,** never to
+   its own quote (the walk-away mechanism of ADR-022). Its action space is otherwise
+   RL_DESIGN §4 unchanged.
+5. **Training starts in 10-40 s; evaluation in 10-150 s.** Start time still varies in
+   training (D6), and held-out episodes include start times training never saw.
+6. **G7 threshold fixed before training:** inventory half-life at most 100 steps (10 s,
+   a third of an episode), from a pooled AR(1) fit. G8 applies from Stage 2 and G9 to
+   perturbed scenarios (M8); both are reported as not applicable, not as passes.
+
+**Committed episode sets** (in `marquee.rl.evaluate`, generated from fixed seeds):
+TRAIN_EVAL 40 from the training pool, VALIDATION 20 (checkpoint choice), HELD_OUT 40
+(the gate, never used for a choice), HELD_OUT_2 20 (ablation A2). Seeds are disjoint.
