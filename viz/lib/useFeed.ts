@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Feed } from "./feed";
 import { cutMakerRisk } from "./levers";
-import { History, type HistoryPayload } from "./history";
+import { History, type HistoryPayload, type MidPoint } from "./history";
 import type { Connection, Frame, Meta } from "./types";
 
 const RENDER_EVERY_MS = 100; // React sees 10 frames/s; History still sees all 20
@@ -15,6 +15,7 @@ export function useFeed(): Feed {
   const [frame, setFrame] = useState<Frame | null>(null);
   const [meta, setMeta] = useState<Meta | null>(null);
   const [connection, setConnection] = useState<Connection>("connecting");
+  const [counterfactual, setCounterfactual] = useState<MidPoint[] | null>(null);
   const history = useRef(new History());
 
   useEffect(() => {
@@ -22,6 +23,11 @@ export function useFeed(): Feed {
       .then((r) => r.json())
       .then(setMeta)
       .catch(() => setMeta(null));
+    // The no-lever twin is computed once on the server (about 3 s), so ask after meta.
+    fetch("/api/counterfactual")
+      .then((r) => r.json())
+      .then((b: { mids: [number, number][] }) => setCounterfactual(b.mids.map(([t, mid]) => ({ t, mid }))))
+      .catch(() => setCounterfactual(null));
   }, []);
 
   useEffect(() => {
@@ -84,6 +90,7 @@ export function useFeed(): Feed {
     connection,
     history,
     recorded: false,
+    counterfactual,
     controls: {
       pause: () => void postControl("pause"),
       resume: () => void postControl("resume"),

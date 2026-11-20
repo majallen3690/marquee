@@ -6,6 +6,7 @@ from collections import deque
 from pathlib import Path
 
 from marquee.agents import InventoryMarketMaker
+from marquee.analysis.counterfactual import control_mids
 from marquee.sim.recorder import JsonlRecorder
 from marquee.sim.scenario import build_session, load_scenario, write_manifest
 
@@ -97,6 +98,9 @@ class LiveSession:
     single pacing task; perturb/pause/speed arrive from HTTP handler threads."""
 
     def __init__(self, scenario_path: str | Path, out_dir: str | Path) -> None:
+        self._scenario_path = Path(scenario_path)
+        self._control: list[tuple[int, float]] | None = None
+        self._control_lock = threading.Lock()
         self.config, self._raw = load_scenario(scenario_path)
         self._out = Path(out_dir)
         self._out.mkdir(parents=True, exist_ok=True)
@@ -241,6 +245,14 @@ class LiveSession:
                 "vol": [[b, v[0], v[1]] for b, v in sorted(self._recorder.vol.items())],
                 "last_tid": self._recorder.max_tid,
             }
+
+    def counterfactual(self) -> list[tuple[int, float]]:
+        """The same seed with no lever, on the gate grid. Computed once, on first
+        request (about 3 s), under its own lock so stepping is never blocked."""
+        with self._control_lock:
+            if self._control is None:
+                self._control = control_mids(self._scenario_path)
+            return self._control
 
     def meta(self) -> dict:
         return {

@@ -189,8 +189,9 @@ cell).
    Pages → GitHub Actions once). `?at=<s>` links to a moment. README GIF from exact
    `?at=` frames. `.github/workflows/ci.yml` now runs ruff, the fast suite, the slow
    sweep on main, and the front-end build.
-2. The no-lever line in the UI, from the control run (precomputed per seed for scripted
-   scenarios; a lockstep second kernel for live levers).
+2. ~~The no-lever line~~ **done 2026-11-20** (ADR-021): the untouched twin of the run,
+   drawn dotted from the lever on, with its move in the headline subtitle; served by
+   `/api/counterfactual` and carried in the recording.
 3. A 4–6 page technical note: the sweep, the paired control, the momentum ablation
    (107.5 → 30.5), and the gate's weakness.
 4. M7, if signed off, per the amended question above.

@@ -46,8 +46,9 @@ export function StatStrip({ frame, d, explain }: { frame: Frame | null; d: Deriv
     const mag = Math.abs(d.move ?? 0);
     const win = d.moveWindowS >= 5 ? "in 5 s" : `${d.moveWindowS.toFixed(1)} s in`;
     const amp = d.amp !== null ? ` · ${d.amp.toFixed(1)}× ${E("normal", "any normal 5 s")}` : "";
+    const ctl = d.controlMove !== null ? ` · no lever ${d.controlMove < 0 ? "−" : "+"}${Math.abs(d.controlMove).toFixed(1)}` : "";
     crash = (
-      <Stat label={E("Move since lever", "Price change since the cut")} sub={`${win}${amp}`}>
+      <Stat label={E("Move since lever", "Price change since the cut")} sub={`${win}${amp}${ctl}`}>
         <Num value={`${down ? "▼" : "▲"} ${mag.toFixed(1)}`} size={14} bold tone={down ? "ask" : "bid"} />
       </Stat>
     );
@@ -63,7 +64,13 @@ export function StatStrip({ frame, d, explain }: { frame: Frame | null; d: Deriv
       {crash}
       <Stat label={E("Spread", "Gap buy ↔ sell")} sub={E("buy↔sell gap", "called the spread")}>
         <span className="n text-[14px]">
-          {d.spread ?? "—"} <span className="text-[11px] text-ink-2">ticks</span>
+          {d.spread !== null ? (
+            <>
+              {d.spread} <span className="text-[11px] text-ink-2">ticks</span>
+            </>
+          ) : (
+            <span className="text-ask">one-sided</span>
+          )}
         </span>
       </Stat>
       <Stat label={E("Top-5 depth", "Orders near the price")} sub={E("orders near the price", "called top-5 depth")}>

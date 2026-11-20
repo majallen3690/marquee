@@ -7,7 +7,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BASE_PATH, type Feed } from "./feed";
-import { History } from "./history";
+import { History, type MidPoint } from "./history";
 import type { Frame, Meta } from "./types";
 
 const TICK_MS = 100;
@@ -15,11 +15,13 @@ const TICK_MS = 100;
 interface Recording {
   meta: Meta;
   frames: Frame[];
+  counterfactual?: [t: number, mid: number][];
 }
 
 export function useStaticFeed(): Feed {
   const [frame, setFrame] = useState<Frame | null>(null);
   const [meta, setMeta] = useState<Meta | null>(null);
+  const [counterfactual, setCounterfactual] = useState<MidPoint[] | null>(null);
   const [connection, setConnection] = useState<Feed["connection"]>("connecting");
   const history = useRef(new History());
   const rec = useRef<Recording | null>(null);
@@ -34,6 +36,7 @@ export function useStaticFeed(): Feed {
         const at = Number(new URLSearchParams(window.location.search).get("at"));
         if (Number.isFinite(at) && at > 0) play.current.simT = at * 1e9;
         setMeta(data.meta);
+        setCounterfactual((data.counterfactual ?? []).map(([t, mid]) => ({ t, mid })));
         setConnection("live");
       })
       .catch(() => setConnection("lost"));
@@ -83,6 +86,7 @@ export function useStaticFeed(): Feed {
     connection,
     history,
     recorded: true,
+    counterfactual,
     at,
     controls: {
       pause: () => (play.current.paused = true),

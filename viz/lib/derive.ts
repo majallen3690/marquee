@@ -4,7 +4,7 @@
  * for a lever pulled at any time, not just the scenario's scripted 30 s). */
 
 import { fmtPx, SHORT_CLASS } from "./format";
-import { top5, type History, type Sample } from "./history";
+import { top5, type History, type MidPoint, type Sample } from "./history";
 import type { Frame, Meta } from "./types";
 
 export type Regime = "stable" | "stressed" | "dislocated";
@@ -29,6 +29,8 @@ export interface Derived {
   moveWindowS: number;
   w5: number | null; // worst normal 5 s range before the lever
   amp: number | null;
+  /** the no-lever twin's signed extreme move over the same window (ADR-021) */
+  controlMove: number | null;
   regime: Regime;
   twoSidedPct: number;
   events: Ev[];
@@ -69,7 +71,7 @@ function worstNormalRange(h: History, leverT: number): number | null {
   return worst;
 }
 
-export function derive(h: History, f: Frame, meta: Meta | null): Derived {
+export function derive(h: History, f: Frame, meta: Meta | null, control: MidPoint[] | null = null): Derived {
   const both = f.bids.length > 0 && f.asks.length > 0;
   const mid = both ? (f.bids[0][0] + f.asks[0][0]) / 2 : null;
   const spread = both ? f.asks[0][0] - f.bids[0][0] : null;
@@ -106,6 +108,21 @@ export function derive(h: History, f: Frame, meta: Meta | null): Derived {
     }
     w5 = worstNormalRange(h, leverT);
     if (move !== null && w5 !== null && w5 > 0) amp = Math.abs(move) / w5;
+  }
+
+  let controlMove: number | null = null;
+  if (leverT !== null && control && control.length > 0) {
+    let c0: number | null = null;
+    for (const p of control) {
+      if (p.t > leverT) break;
+      c0 = p.mid;
+    }
+    if (c0 !== null) {
+      for (const p of control) {
+        if (p.t <= leverT || p.t > Math.min(leverT + 5e9, f.t)) continue;
+        if (controlMove === null || Math.abs(p.mid - c0) > Math.abs(controlMove)) controlMove = p.mid - c0;
+      }
+    }
   }
 
   const depthRatio = base.d5 > 0 ? d5 / base.d5 : 1;
@@ -173,5 +190,6 @@ export function derive(h: History, f: Frame, meta: Meta | null): Derived {
     regime,
     twoSidedPct: h.sampled > 0 ? (1 - h.oneSided / h.sampled) * 100 : 100,
     events,
+    controlMove,
   };
 }

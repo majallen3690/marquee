@@ -760,3 +760,21 @@ breaks on the second seed.
 
 **Rejected.** Re-tuning the scenario until most seeds crash downward: that would be
 fitting the story, not measuring the market.
+
+## ADR-021: The no-lever line — the control run, drawn on the chart
+
+**Decision.** The chart draws a dotted line from the lever on: the same scenario and
+seed run with no perturbation at all (`marquee.analysis.counterfactual.control_mids`,
+`build_session(include_config_perturbations=False)`). The strip's headline subtitle adds
+the control's move over the same 5 s window ("no lever +58.0"). The live bridge computes
+it once on first request (`/api/counterfactual`, about 1–3 s, its own lock so stepping
+never waits); the recorded demo carries it in the recording.
+
+**Why.** It is the comparison the claim rests on (ADR-020), made visible: on the
+committed seed the price rises to 9984 without the lever and falls to the 9800s with it.
+`test_counterfactual_is_the_same_run_until_the_lever` asserts the two runs are identical
+on the grid up to 30 s, so the line is a true twin, not a simulation "like" this one.
+
+**Scope.** For a lever pulled by hand at another time the control is still correct
+("nobody touched anything"), since every run before a perturbation is identical. A
+second lever pulled later compares against the untouched run, not against the first lever.

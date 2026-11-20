@@ -13,6 +13,7 @@ import json
 import tempfile
 from pathlib import Path
 
+from marquee.analysis.counterfactual import control_mids
 from marquee.server.session import LiveSession
 
 SCENARIO = Path(__file__).resolve().parents[3] / "scenarios" / "m5-flash-crash.yaml"
@@ -34,7 +35,8 @@ def record(scenario: Path) -> dict:
             frames.append(frame)
             if frame["status"] == "done":
                 break
-        return {"meta": session.meta(), "frames": frames}
+        control = [[t, mid] for t, mid in control_mids(scenario)]
+        return {"meta": session.meta(), "frames": frames, "counterfactual": control}
 
 
 def main() -> None:

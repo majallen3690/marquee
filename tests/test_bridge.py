@@ -157,3 +157,18 @@ def test_history_endpoint(tmp_path) -> None:
     with TestClient(app) as client:
         body = client.get("/api/history").json()
         assert set(body) == {"mids", "frames", "vol", "last_tid"}
+
+
+def test_counterfactual_is_the_same_run_until_the_lever(tmp_path) -> None:
+    """The dotted no-lever line (ADR-021) must be the untouched twin of the live
+    run: identical on the grid up to the lever, then free to differ."""
+    session = LiveSession(SCENARIO, tmp_path / "live")
+    session.set_speed(50.0)
+    for _ in range(16):  # past 35 s
+        session.step(0.05)
+    control = dict(session.counterfactual())
+    live = dict(session.mid_series)
+    assert len(control) == 600
+    assert all(control[t] == live[t] for t in live if t <= 30_000_000_000)
+    assert control[35_000_000_000] - control[30_000_000_000] > 0  # no lever: it rose
+    assert live[35_000_000_000] < live[30_000_000_000]  # with the lever: it fell

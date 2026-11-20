@@ -10,7 +10,9 @@ limits. Nobody tells the price what to do.
 **[Watch it in your browser](https://majallen3690.github.io/marquee/)** (a recorded run, no
 install; add `?at=29` to the link to start just before the lever).
 
-![26 to 40 seconds of the committed run: the lever at 30 s, then the fall](docs/demo.gif)
+![26 to 40 seconds of the committed run: the lever at 30 s, then the fall; the dotted line is the same seed with no lever](docs/demo.gif)
+
+The dotted line is the control: the same seed with nothing touched, identical until 30 s.
 
 **What happens, measured.** On the committed seed the price falls **107.5 ticks
 (about 1.1%) in 5 seconds**, 3.8 times the largest 5-second swing of the 15

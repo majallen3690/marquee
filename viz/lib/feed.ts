@@ -1,6 +1,6 @@
 /** What the page needs from a feed, live (the bridge) or recorded (a static file). */
 
-import type { History } from "./history";
+import type { History, MidPoint } from "./history";
 import type { Connection, Frame, Meta } from "./types";
 
 export interface Controls {
@@ -21,6 +21,8 @@ export interface Feed {
   /** true when playing a recorded run with no server behind it */
   recorded: boolean;
   controls: Controls;
+  /** the same seed with no lever (ADR-021); null until loaded */
+  counterfactual: MidPoint[] | null;
   /** the run as it was at sim time t, for Replay */
   at(t: number): Promise<{ frame: Frame; history: History } | null>;
 }

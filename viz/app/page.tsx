@@ -36,7 +36,11 @@ export default function Live() {
 
   const frame = scrub ? scrub.frame : feed.frame;
   const history = scrub ? scrub.history : feed.history;
-  const d = useMemo(() => (frame ? derive(history.current, frame, meta) : null), [frame, meta, history]);
+  const control = feed.counterfactual;
+  const d = useMemo(
+    () => (frame ? derive(history.current, frame, meta, control) : null),
+    [frame, meta, history, control],
+  );
 
   const goLive = useCallback(() => setScrub(null), []);
   const at = feed.at;
@@ -121,7 +125,7 @@ export default function Live() {
           id="chart"
           right={<span className="font-sans text-[12px] text-ink-2">{caption}</span>}
         >
-          <PriceChart frame={frame} d={d} history={history} explain={explain} />
+          <PriceChart frame={frame} d={d} history={history} explain={explain} control={control} />
         </Panel>
         <BookPanel frame={frame} d={d} history={history} explain={explain} />
         <div className="seam" style={{ gridArea: "side", gridTemplateRows: "auto minmax(0, 1fr)" }}>

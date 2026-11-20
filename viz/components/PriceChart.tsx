@@ -6,7 +6,7 @@
  * the History ref. Flat fills and 1 px lines only: no blur, glow or gradient. */
 
 import { useEffect, useRef } from "react";
-import { COL_NS, type History } from "@/lib/history";
+import { COL_NS, type History, type MidPoint } from "@/lib/history";
 import type { Derived } from "@/lib/derive";
 import { fmtSec, fmtPx } from "@/lib/format";
 import type { Frame } from "@/lib/types";
@@ -63,7 +63,7 @@ function niceStep(span: number, target: number): number {
 }
 
 
-function draw(canvas: HTMLCanvasElement, h: History, f: Frame, d: Derived, explain: boolean): void {
+function draw(canvas: HTMLCanvasElement, h: History, f: Frame, d: Derived, explain: boolean, control: MidPoint[] | null): void {
   const dpr = window.devicePixelRatio || 1;
   const W = canvas.clientWidth;
   const H = canvas.clientHeight;
@@ -183,6 +183,30 @@ function draw(canvas: HTMLCanvasElement, h: History, f: Frame, d: Derived, expla
     ctx.stroke();
   }
 
+  // The no-lever twin (ADR-021): same seed, nothing touched. Identical before the
+  // lever, so it is drawn only from the lever on, dotted, up to the playhead.
+  if (d.fired && d.leverT !== null && control) {
+    const pts = control.filter((p) => p.t >= d.leverT! && p.t <= f.t && p.mid >= lo && p.mid <= hi);
+    if (pts.length > 1) {
+      ctx.strokeStyle = rgba(C.ink1, 0.85);
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([1.5, 4]);
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(x(pts[0].t), y(pts[0].mid));
+      for (const p of pts) ctx.lineTo(x(p.t), y(p.mid));
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.lineCap = "butt";
+      const end = pts[pts.length - 1];
+      ctx.font = `11px ${C.mono}`;
+      ctx.fillStyle = C.ink1;
+      ctx.textAlign = "end";
+      ctx.fillText(`${explain ? "if nobody pulled the lever" : "same seed, no lever"} · ${end.mid.toFixed(1)}`, pw - 8, y(end.mid) - 8);
+      ctx.textAlign = "left";
+    }
+  }
+
   ctx.strokeStyle = C.ink1;
   ctx.lineWidth = 1.6;
   ctx.beginPath();
@@ -297,7 +321,7 @@ function draw(canvas: HTMLCanvasElement, h: History, f: Frame, d: Derived, expla
     }
     ctx.fillStyle = C.ink2;
     const vw = f.stats.vwap;
-    ctx.fillText(`VWAP ${vw !== null ? vw.toFixed(1) : "—"}  ·  ${explain ? "teal = buyers, coral = sellers" : "teal bids · coral asks"} · brighter = more size`, lx, ly + 33);
+    ctx.fillText(`VWAP ${vw !== null ? vw.toFixed(1) : "—"}  ·  ${explain ? "teal = buyers, coral = sellers" : "teal bids · coral asks"}${d.fired && control ? " · dotted = no lever" : " · brighter = more size"}`, lx, ly + 33);
   }
 
   // ---- right axis with last-price and VWAP pills
@@ -427,22 +451,24 @@ export function PriceChart({
   d,
   history,
   explain,
+  control,
 }: {
   frame: Frame | null;
   d: Derived | null;
   history: React.RefObject<History>;
   explain: boolean;
+  control: MidPoint[] | null;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas || !frame || !d || !history.current) return;
-    const redraw = () => draw(canvas, history.current, frame, d, explain);
+    const redraw = () => draw(canvas, history.current, frame, d, explain, control);
     redraw();
     window.addEventListener("resize", redraw);
     return () => window.removeEventListener("resize", redraw);
-  }, [frame, d, history, explain]);
+  }, [frame, d, history, explain, control]);
 
   if (!frame) return <VoidState>Awaiting feed</VoidState>;
   return (

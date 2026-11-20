@@ -74,6 +74,10 @@ def create_app(scenario_path: str | Path, out_dir: str | Path) -> FastAPI:
     def meta() -> dict:
         return session.meta()
 
+    @app.get("/api/counterfactual")
+    def counterfactual() -> dict:
+        return {"mids": [[t, mid] for t, mid in session.counterfactual()]}
+
     @app.get("/api/history")
     def history() -> dict:
         return session.history()
