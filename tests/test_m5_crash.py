@@ -19,7 +19,7 @@ import yaml
 from marquee.analysis import compute_run_stats
 from marquee.analysis.stylized_facts import sample_mid_series
 from marquee.sim import run_scenario
-from marquee.sim.scenario import load_scenario
+from marquee.sim.scenario import build_session, load_scenario
 
 SCENARIO = Path(__file__).parents[1] / "scenarios" / "m5-flash-crash.yaml"
 WORKER = Path(__file__).parent / "_scenario_worker.py"
@@ -112,3 +112,25 @@ def test_the_lever_is_the_cause_on_the_committed_seed() -> None:
     assert lever.move == -107.5 and lever.pre_worst == control.pre_worst == 28.0
     assert control.move == 58.0
     assert lever.move - control.move <= -100
+
+
+def test_makers_are_the_book_before_the_lever(tmp_path) -> None:
+    """The crash precondition the scenario file states: before the lever the two
+    market makers hold most of the resting depth (median >= 60% of shares in the
+    book, sampled every 0.5 s), so cutting their limits removes the liquidity.
+    They are the passive side of far less of the *traded* volume (~28%): noise
+    traders trade a lot against each other. Depth is what the lever removes."""
+    config, _ = load_scenario(SCENARIO)
+    kernel, recorder, _ = build_session(config, tmp_path / "run")
+    shares = []
+    try:
+        for t in range(500_000_000, 30_000_000_000, 500_000_000):
+            kernel.run_until(t)
+            by_agent = kernel.engine.resting_qty_by_agent()
+            total = sum(by_agent.values())
+            if total:
+                shares.append((by_agent.get(1, 0) + by_agent.get(2, 0)) / total)
+    finally:
+        recorder.close()
+    shares.sort()
+    assert shares[len(shares) // 2] >= 0.60

@@ -21,6 +21,7 @@ import heapq
 from collections import deque
 
 from marquee.engine.types import (
+    AgentId,
     BookSnapshot,
     CancelResult,
     CancelStatus,
@@ -277,6 +278,13 @@ class MatchingEngine:
             level.queue = deque(x for x in level.queue if x in orders)
             level.dead = 0
         return CancelResult(order_id, CancelStatus.CANCELLED, resting.remaining)
+
+    def resting_qty_by_agent(self) -> dict[AgentId, int]:
+        """Shares resting in the book per agent (read-only; for analysis and tests)."""
+        out: dict[AgentId, int] = {}
+        for resting in self._orders.values():
+            out[resting.agent_id] = out.get(resting.agent_id, 0) + resting.remaining
+        return out
 
     def snapshot(self, ts: TimeNs, depth: int = 10) -> BookSnapshot:
         if depth == 1:

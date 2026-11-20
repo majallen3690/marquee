@@ -8,14 +8,14 @@ no-lever twin of each seed is the control (same seed, same flow up to 30 s).
 """
 
 import argparse
+import dataclasses
 import json
 import tempfile
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
 from marquee.analysis.stylized_facts import sample_mid_series
-from marquee.sim import run_scenario
-from marquee.sim.scenario import load_scenario
+from marquee.sim.scenario import build_session, load_scenario
 
 SCENARIO = Path(__file__).resolve().parents[3] / "scenarios" / "m5-flash-crash.yaml"
 COMMITTED_SEED = 777002
@@ -46,19 +46,20 @@ def gate_move(mids: list[float]) -> tuple[float, float]:
     return move, worst
 
 
-def scenario_text(seed: int, lever: bool) -> str:
-    text = SCENARIO.read_text(encoding="utf-8-sig")
-    text = text.replace(f"master_seed: {COMMITTED_SEED}", f"master_seed: {seed}")
-    if not lever:
-        text = text[: text.index("perturbations:")] + text[text.index("crash_criteria:") :]
-    return text
-
-
-def run_one(seed: int, lever: bool, work: Path) -> GateMove:
-    path = work / f"s{seed}_{int(lever)}.yaml"
-    path.write_text(scenario_text(seed, lever), encoding="utf-8")
-    config, _ = load_scenario(path)
-    out = run_scenario(path, work / f"run_{seed}_{int(lever)}")
+def run_one(seed: int, lever: bool, work: Path, momentum: bool = True) -> GateMove:
+    """The committed scenario with its seed replaced; optionally without the lever
+    (the control) or without the three momentum traders (the ablation)."""
+    config, _ = load_scenario(SCENARIO)
+    agents = config.agents if momentum else tuple(
+        a for a in config.agents if a.agent_class != "momentum"
+    )
+    config = dataclasses.replace(config, master_seed=seed, agents=agents)
+    out = work / f"run_{seed}_{int(lever)}_{int(momentum)}"
+    kernel, recorder, _ = build_session(config, out, include_config_perturbations=lever)
+    try:
+        kernel.run()
+    finally:
+        recorder.close()
     mids = sample_mid_series(out, config.self_trade_policy, config.horizon_ns, GRID_NS)
     move, worst = gate_move(mids)
     return GateMove(seed, lever, move, worst, abs(move) / worst)
