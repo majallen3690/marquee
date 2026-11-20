@@ -778,3 +778,41 @@ on the grid up to 30 s, so the line is a true twin, not a simulation "like" this
 **Scope.** For a lever pulled by hand at another time the control is still correct
 ("nobody touched anything"), since every run before a perturbation is identical. A
 second lever pulled later compares against the untouched run, not against the first lever.
+
+## ADR-022: The lever taken apart — quoting distance, not depth, carries the effect
+
+**Finding.** `marquee.analysis.lever_study` runs the committed scenario on the sweep's 30
+seeds with the lever's four parameters taken apart (each alone, and the lever minus
+each) and dosed (all four, or the half-spread alone, moved a fraction s of the way to
+the lever's values in log space), every run paired with its untouched twin. Results in
+`docs/LEVER_STUDY.md`. Widening the quotes alone gives a median 5 s move of 152.2 ticks
+against 27.0, bigger than the twin on 30 of 30 seeds; the move rises steadily with the
+distance (about 12 ticks per tick). Cutting quote size alone removes 78% of top-5 depth
+and leaves the move unchanged (ratio 1.03); cutting inventory limits alone does nothing
+(0.98) and, combined with the wider quotes, halves their effect (152 → 62). Executed
+prices agree on every arm.
+
+**Decision.**
+1. The headline claim gains its mechanism: the lever works through how far the makers
+   quote from the price, not how much they quote. README, NOTE §1/§6–§8 and SEED_SWEEP
+   say so; NOTE §7's "depth is what the lever removes" is corrected rather than kept.
+2. Every claim is reported with a 95% bootstrap interval and an exact sign test, and is
+   also measured on executed prices (`trade_move`, `trade_end`), so a quote-only artifact
+   would show up as disagreement.
+3. `tests/test_lever_study.py` holds it (slow: distance-only ≥ 27/30 on mid and on trades,
+   ratio ≥ 3; limits-only and size-only ratio within 0.8–1.25 and p > 0.05; size-only
+   still removes ≥ 70% of depth; monotone dose) plus fast tests of the instruments.
+4. The committed scenario and its lever are unchanged; the demo is unchanged.
+
+**Why.** "Remove liquidity and prices swing more" is textbook, and a bundled lever
+invites "of course, you deleted the book". Taking it apart turns a demonstration into a
+result that can be wrong and is not, and that names the variable a learned maker
+(Phase 2) would actually control.
+
+**Caveats recorded with the result.** Makers re-quote every 10–15 ms (fast refill), and
+they price relative to the current best quotes, often their own. Both plausibly make
+distance matter more and depth less than in real markets; neither is tested. Distance
+alone leans up (22 of 30 seeds, p = 0.016), unexplained.
+
+**Rejected.** A variance-based metric in place of the gate's: keeping the committed
+gate's own metric makes every number comparable with ADR-020 and the demo.

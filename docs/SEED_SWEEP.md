@@ -21,8 +21,14 @@ Reproduce: `uv run python -m marquee.analysis.seed_sweep --seeds 30 --out docs/s
 | price moved down | 16 of 30 | 11 of 30 |
 | passes the committed gate (≥ 25 ticks and ≥ 2× normal) | 10 of 30 | 4 of 30 |
 
-**What holds:** cutting the makers' risk limits roughly doubles how far the price
-moves in the next 5 seconds. **What does not:** the direction. The lever removes the
+95% bootstrap intervals: median move with the lever 37.8–80.5 ticks, without 20.0–30.8;
+median paired ratio 1.86–2.69. Bigger on 23 of 30 is a two-sided exact sign test
+p = 0.005. On executed prices instead of the mid, bigger on 28 of 30
+(`docs/LEVER_STUDY.md`).
+
+**What holds:** cutting the makers' risk appetite roughly doubles how far the price
+moves in the next 5 seconds. Which part of the cut does it, quoting distance, is in
+`docs/LEVER_STUDY.md`. **What does not:** the direction. The lever removes the
 liquidity that absorbs order flow; whichever way the flow is leaning then moves the
 price further. On 14 seeds that is up.
 

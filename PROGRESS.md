@@ -171,7 +171,7 @@ corrected; prices print without thousands separators (B612 Mono gives the comma 
 cell).
 
 **Now: things only the author can do (this week).**
-1. `gh auth login`, create the public repo, push. Nothing counts until it is visible.
+1. ~~Create the public repo, push~~ **done 2026-11-20**: github.com/majallen3690/marquee, demo at majallen3690.github.io/marquee.
 2. M6 sign-off, in the author's own words: a one-page defence of RL_DESIGN.md §4 and §7
    written without Claude. Proposed amendment to sign with it: M7's headline question
    becomes *does a learned market maker soften or deepen the lever's effect?*, measured
@@ -195,7 +195,15 @@ cell).
 3. ~~Technical note~~ **done 2026-11-20**: `docs/NOTE.md`. Adds the momentum ablation
    across all 30 seeds and a test for the scenario's "makers are the book" precondition
    (the file claimed a test asserted it; none did; median depth share is 69%).
-4. M7, if signed off, per the amended question above.
+4. ~~Take the lever apart~~ **done 2026-11-20** (ADR-022): `marquee.analysis.lever_study`
+   ablates and doses the four-part lever on the same 30 seeds with paired twins,
+   bootstrap intervals, sign tests and executed-price checks. Quoting distance carries
+   the whole effect (distance alone ×4.8, 30/30); size and limits alone do nothing, and
+   limits damp the distance effect. `docs/LEVER_STUDY.md`, chart `docs/lever-dose.svg`,
+   `tests/test_lever_study.py`. The repo is public (github.com/majallen3690/marquee) and
+   the demo is live on Pages.
+5. M7, if signed off, per the amended question above, sharpened by ADR-022: a learned
+   maker's interesting choice under stress is where it quotes, not how much.
 
 **Frozen / cut.** No more visual redesign rounds; no Agents / Lab / Evaluation pages
 and no phone layout until the above is done (the 1440 px screen shrinks to fit).
