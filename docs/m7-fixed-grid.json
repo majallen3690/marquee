@@ -1,0 +1,252 @@
+{
+ "best": [
+  2,
+  2,
+  1
+ ],
+ "table": {
+  "[0, 0, 0]": {
+   "n": 40,
+   "mean_pnl": -5624.1,
+   "std_pnl": 17893.83248396225,
+   "risk_adjusted": -0.31430382535662643,
+   "spread_capture": -491.2875,
+   "inventory_pnl": -5132.8125,
+   "maker_volume": 3071.05
+  },
+  "[0, 0, 1]": {
+   "n": 40,
+   "mean_pnl": -8351.95,
+   "std_pnl": 23658.919319826324,
+   "risk_adjusted": -0.35301485613508193,
+   "spread_capture": 173.5,
+   "inventory_pnl": -8525.45,
+   "maker_volume": 3218.025
+  },
+  "[0, 0, 2]": {
+   "n": 40,
+   "mean_pnl": -3358.775,
+   "std_pnl": 19143.71622081117,
+   "risk_adjusted": -0.17545052179308163,
+   "spread_capture": 105.8125,
+   "inventory_pnl": -3464.5875,
+   "maker_volume": 3221.35
+  },
+  "[1, 1, 0]": {
+   "n": 40,
+   "mean_pnl": -3606.525,
+   "std_pnl": 15414.6726920972,
+   "risk_adjusted": -0.23396701779136672,
+   "spread_capture": 128.325,
+   "inventory_pnl": -3734.85,
+   "maker_volume": 3285.825
+  },
+  "[1, 1, 1]": {
+   "n": 40,
+   "mean_pnl": -2094.175,
+   "std_pnl": 12678.147720990492,
+   "risk_adjusted": -0.16517988637510456,
+   "spread_capture": 358.35,
+   "inventory_pnl": -2452.525,
+   "maker_volume": 3355.25
+  },
+  "[1, 1, 2]": {
+   "n": 40,
+   "mean_pnl": -1022.725,
+   "std_pnl": 11713.528199101833,
+   "risk_adjusted": -0.08731143875834271,
+   "spread_capture": 343.9375,
+   "inventory_pnl": -1366.6625,
+   "maker_volume": 3393.55
+  },
+  "[2, 2, 0]": {
+   "n": 40,
+   "mean_pnl": 1833.525,
+   "std_pnl": 8835.308895641978,
+   "risk_adjusted": 0.20752245582544235,
+   "spread_capture": 4194.05,
+   "inventory_pnl": -2360.525,
+   "maker_volume": 2695.575
+  },
+  "[2, 2, 1]": {
+   "n": 40,
+   "mean_pnl": 3236.025,
+   "std_pnl": 4975.047241046162,
+   "risk_adjusted": 0.6504511099515756,
+   "spread_capture": 4587.9375,
+   "inventory_pnl": -1351.9125,
+   "maker_volume": 2875.075
+  },
+  "[2, 2, 2]": {
+   "n": 40,
+   "mean_pnl": 3100.975,
+   "std_pnl": 5084.190813701645,
+   "risk_adjusted": 0.6099249838623334,
+   "spread_capture": 4268.1625,
+   "inventory_pnl": -1167.1875,
+   "maker_volume": 2855.675
+  },
+  "[3, 3, 0]": {
+   "n": 40,
+   "mean_pnl": 2762.075,
+   "std_pnl": 13522.38117854324,
+   "risk_adjusted": 0.2042595134341241,
+   "spread_capture": 8617.425,
+   "inventory_pnl": -5855.35,
+   "maker_volume": 2162.225
+  },
+  "[3, 3, 1]": {
+   "n": 40,
+   "mean_pnl": 3454.775,
+   "std_pnl": 11569.979960285595,
+   "risk_adjusted": 0.2985981835628626,
+   "spread_capture": 8117.2875,
+   "inventory_pnl": -4662.5125,
+   "maker_volume": 2243.225
+  },
+  "[3, 3, 2]": {
+   "n": 40,
+   "mean_pnl": 2887.075,
+   "std_pnl": 13999.998546497178,
+   "risk_adjusted": 0.20621966426720456,
+   "spread_capture": 8281.9,
+   "inventory_pnl": -5394.825,
+   "maker_volume": 2250.3
+  },
+  "[4, 4, 0]": {
+   "n": 40,
+   "mean_pnl": 1848.0,
+   "std_pnl": 10122.028637757836,
+   "risk_adjusted": 0.18257209756416543,
+   "spread_capture": 7595.7625,
+   "inventory_pnl": -5747.7625,
+   "maker_volume": 1450.725
+  },
+  "[4, 4, 1]": {
+   "n": 40,
+   "mean_pnl": 2166.4,
+   "std_pnl": 13126.073259757193,
+   "risk_adjusted": 0.16504555148582756,
+   "spread_capture": 7528.825,
+   "inventory_pnl": -5362.425,
+   "maker_volume": 1497.3
+  },
+  "[4, 4, 2]": {
+   "n": 40,
+   "mean_pnl": 1008.45,
+   "std_pnl": 14086.600803691574,
+   "risk_adjusted": 0.0715893077438329,
+   "spread_capture": 7653.25,
+   "inventory_pnl": -6644.8,
+   "maker_volume": 1488.575
+  },
+  "[5, 5, 0]": {
+   "n": 40,
+   "mean_pnl": 770.425,
+   "std_pnl": 11358.685954352966,
+   "risk_adjusted": 0.06782694786140747,
+   "spread_capture": 5959.2125,
+   "inventory_pnl": -5188.7875,
+   "maker_volume": 954.65
+  },
+  "[5, 5, 1]": {
+   "n": 40,
+   "mean_pnl": 3936.85,
+   "std_pnl": 12695.145610802861,
+   "risk_adjusted": 0.3101067227342363,
+   "spread_capture": 6944.35,
+   "inventory_pnl": -3007.5,
+   "maker_volume": 1049.75
+  },
+  "[5, 5, 2]": {
+   "n": 40,
+   "mean_pnl": 1845.875,
+   "std_pnl": 11051.737109514526,
+   "risk_adjusted": 0.16702125482254476,
+   "spread_capture": 6178.075,
+   "inventory_pnl": -4332.2,
+   "maker_volume": 1036.475
+  },
+  "[6, 6, 0]": {
+   "n": 40,
+   "mean_pnl": 3522.5,
+   "std_pnl": 7314.438334817387,
+   "risk_adjusted": 0.48158174814771243,
+   "spread_capture": 5453.25,
+   "inventory_pnl": -1930.75,
+   "maker_volume": 695.9
+  },
+  "[6, 6, 1]": {
+   "n": 40,
+   "mean_pnl": 3066.95,
+   "std_pnl": 9357.244033093923,
+   "risk_adjusted": 0.32776210486261403,
+   "spread_capture": 5731.5375,
+   "inventory_pnl": -2664.5875,
+   "maker_volume": 752.0
+  },
+  "[6, 6, 2]": {
+   "n": 40,
+   "mean_pnl": 1078.275,
+   "std_pnl": 9809.182913742428,
+   "risk_adjusted": 0.10992505792601368,
+   "spread_capture": 5304.7,
+   "inventory_pnl": -4226.425,
+   "maker_volume": 782.8
+  },
+  "[7, 7, 0]": {
+   "n": 40,
+   "mean_pnl": 504.675,
+   "std_pnl": 4950.055453652087,
+   "risk_adjusted": 0.10195340329524134,
+   "spread_capture": 3338.35,
+   "inventory_pnl": -2833.675,
+   "maker_volume": 363.05
+  },
+  "[7, 7, 1]": {
+   "n": 40,
+   "mean_pnl": 856.4,
+   "std_pnl": 6677.770066921043,
+   "risk_adjusted": 0.12824640432623718,
+   "spread_capture": 3770.8375,
+   "inventory_pnl": -2914.4375,
+   "maker_volume": 420.35
+  },
+  "[7, 7, 2]": {
+   "n": 40,
+   "mean_pnl": 1211.025,
+   "std_pnl": 7242.81011298048,
+   "risk_adjusted": 0.16720374842212352,
+   "spread_capture": 3714.55,
+   "inventory_pnl": -2503.525,
+   "maker_volume": 416.2
+  },
+  "[8, 8, 0]": {
+   "n": 40,
+   "mean_pnl": 986.725,
+   "std_pnl": 5227.454471898271,
+   "risk_adjusted": 0.18875821976153642,
+   "spread_capture": 2367.3625,
+   "inventory_pnl": -1380.6375,
+   "maker_volume": 236.6
+  },
+  "[8, 8, 1]": {
+   "n": 40,
+   "mean_pnl": 1999.05,
+   "std_pnl": 5684.054885920248,
+   "risk_adjusted": 0.35169435202882526,
+   "spread_capture": 2616.9625,
+   "inventory_pnl": -617.9125,
+   "maker_volume": 269.4
+  },
+  "[8, 8, 2]": {
+   "n": 40,
+   "mean_pnl": 454.85,
+   "std_pnl": 6706.88034992463,
+   "risk_adjusted": 0.06781841575645696,
+   "spread_capture": 2818.1125,
+   "inventory_pnl": -2363.2625,
+   "maker_volume": 287.975
+  }
+ }
+}

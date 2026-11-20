@@ -55,6 +55,7 @@ HELD_OUT_2 = _episodes(20, 4_000_001, 14)
 # --- policies (picklable specs, built inside the worker) ---------------------
 
 type PolicySpec = tuple  # ("rule",) | ("fixed", (b, a, s)) | ("random", seed) | ("ppo", path)
+# | ("model", live_model) — in-process only, never sent to a worker
 
 _PPO_CACHE: dict[str, object] = {}
 
@@ -65,6 +66,9 @@ def _act(spec: PolicySpec, obs: np.ndarray, rng: np.random.Generator) -> np.ndar
         return np.asarray(spec[1])
     if kind == "random":
         return np.array([rng.integers(len(OFFSETS)), rng.integers(len(OFFSETS)), rng.integers(3)])
+    if kind == "model":  # a live SB3 model, in-process only (validation during training)
+        action, _ = spec[1].predict(obs, deterministic=True)
+        return action
     if kind == "ppo":
         model = _PPO_CACHE.get(spec[1])
         if model is None:

@@ -7,6 +7,11 @@ Every --eval-every steps the current policy is saved and scored, deterministic, 
 VALIDATION episodes (never the held-out gate set); the best by risk-adjusted P&L is kept
 as best.zip. progress.jsonl records every evaluation and the training episode stats.
 --init starts from another run's model (the curriculum: Stage 0, then Stage 1).
+
+torch and SB3 are imported inside main(): environment worker processes re-import this
+module when they spawn, and sixteen copies of torch that they never use exhausted memory
+in the first Stage 1 run. Validation runs in this process, on the live model, for the
+same reason.
 """
 
 import os
@@ -21,10 +26,6 @@ import time  # noqa: E402
 from pathlib import Path  # noqa: E402
 
 import numpy as np  # noqa: E402
-import torch  # noqa: E402
-from stable_baselines3 import PPO  # noqa: E402
-from stable_baselines3.common.callbacks import BaseCallback  # noqa: E402
-from stable_baselines3.common.vec_env import SubprocVecEnv, VecMonitor  # noqa: E402
 
 from marquee.rl.env import EnvConfig, MarketMakingEnv  # noqa: E402
 from marquee.rl.evaluate import VALIDATION, describe, run_eval  # noqa: E402
@@ -51,54 +52,53 @@ def _make(cfg: EnvConfig, seed: int):
     return thunk
 
 
-class Checkpointing(BaseCallback):
-    def __init__(self, run: Path, every: int, eval_workers: int) -> None:
-        super().__init__()
-        self.run = run
-        self.every = every
-        self.eval_workers = eval_workers
-        self.next_at = 0
-        self.best = -np.inf
-        log = run / "progress.jsonl"
-        if log.exists():
-            for line in log.read_text(encoding="utf-8").splitlines():
-                rec = json.loads(line)
-                self.best = max(self.best, rec["val_risk_adjusted"])
+def _checkpointing(run: Path, every: int):
+    from stable_baselines3.common.callbacks import BaseCallback
 
-    def _on_training_start(self) -> None:
-        self.next_at = (self.num_timesteps // self.every + 1) * self.every
-        self._t = time.perf_counter()
-        self._steps0 = self.num_timesteps
+    class Checkpointing(BaseCallback):
+        def __init__(self) -> None:
+            super().__init__()
+            self.best = -np.inf
+            log = run / "progress.jsonl"
+            if log.exists():
+                for line in log.read_text(encoding="utf-8").splitlines():
+                    self.best = max(self.best, json.loads(line)["val_risk_adjusted"])
 
-    def _on_step(self) -> bool:
-        if self.num_timesteps < self.next_at:
+        def _on_training_start(self) -> None:
+            self.next_at = (self.num_timesteps // every + 1) * every
+            self.t0 = time.perf_counter()
+            self.steps0 = self.num_timesteps
+
+        def _on_step(self) -> bool:
+            if self.num_timesteps < self.next_at:
+                return True
+            self.next_at += every
+            steps = self.num_timesteps
+            ckpt = run / f"ckpt_{steps:09d}.zip"
+            self.model.save(ckpt)
+            shutil.copyfile(ckpt, run / "latest.zip")
+            val = describe(run_eval(("model", self.model), VALIDATION, workers=1))
+            infos = list(self.model.ep_info_buffer)
+            rec = {
+                "steps": steps,
+                "fps": round((steps - self.steps0) / (time.perf_counter() - self.t0), 1),
+                "train_ep_reward": float(np.mean([i["r"] for i in infos])) if infos else None,
+                "val_mean_pnl": val["mean_pnl"],
+                "val_std_pnl": val["std_pnl"],
+                "val_risk_adjusted": val["risk_adjusted"],
+                "val_spread_capture": val["spread_capture"],
+                "val_inventory_pnl": val["inventory_pnl"],
+            }
+            if val["risk_adjusted"] > self.best:
+                self.best = val["risk_adjusted"]
+                shutil.copyfile(ckpt, run / "best.zip")
+                rec["best"] = True
+            with open(run / "progress.jsonl", "a", encoding="utf-8") as f:
+                f.write(json.dumps(rec) + "\n")
+            print(json.dumps(rec), flush=True)
             return True
-        self.next_at += self.every
-        steps = self.num_timesteps
-        ckpt = self.run / f"ckpt_{steps:09d}.zip"
-        self.model.save(ckpt)
-        shutil.copyfile(ckpt, self.run / "latest.zip")
-        val = describe(run_eval(("ppo", str(ckpt)), VALIDATION, workers=self.eval_workers))
-        infos = list(self.model.ep_info_buffer)
-        fps = (steps - self._steps0) / (time.perf_counter() - self._t)
-        rec = {
-            "steps": steps,
-            "fps": round(fps, 1),
-            "train_ep_reward": float(np.mean([i["r"] for i in infos])) if infos else None,
-            "val_mean_pnl": val["mean_pnl"],
-            "val_std_pnl": val["std_pnl"],
-            "val_risk_adjusted": val["risk_adjusted"],
-            "val_spread_capture": val["spread_capture"],
-            "val_inventory_pnl": val["inventory_pnl"],
-        }
-        if val["risk_adjusted"] > self.best:
-            self.best = val["risk_adjusted"]
-            shutil.copyfile(ckpt, self.run / "best.zip")
-            rec["best"] = True
-        with open(self.run / "progress.jsonl", "a", encoding="utf-8") as f:
-            f.write(json.dumps(rec) + "\n")
-        print(json.dumps(rec), flush=True)
-        return True
+
+    return Checkpointing()
 
 
 def main() -> None:
@@ -109,13 +109,17 @@ def main() -> None:
     ap.add_argument("--n-envs", type=int, default=16)
     ap.add_argument("--max-start-s", type=float, default=40.0, help="training start cap")
     ap.add_argument("--eval-every", type=int, default=100_000)
-    ap.add_argument("--eval-workers", type=int, default=4)
     ap.add_argument("--gamma-inv", type=float, default=EnvConfig().gamma, help="inventory γ")
     ap.add_argument("--eta", type=float, default=EnvConfig().eta)
+    ap.add_argument("--lr", type=float, default=PPO_KWARGS["learning_rate"])
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--resume", action="store_true")
     ap.add_argument("--init", type=Path, help="start from this model (curriculum)")
     args = ap.parse_args()
+
+    import torch
+    from stable_baselines3 import PPO
+    from stable_baselines3.common.vec_env import SubprocVecEnv, VecMonitor
 
     torch.set_num_threads(1)
     args.run.mkdir(parents=True, exist_ok=True)
@@ -126,9 +130,10 @@ def main() -> None:
         eta=args.eta,
         max_start_s=args.max_start_s,
     )
+    ppo_kwargs = {**PPO_KWARGS, "learning_rate": args.lr}
     meta = {k: (str(v) if isinstance(v, Path) else v) for k, v in vars(args).items()}
     meta["env"] = {k: str(v) for k, v in dataclasses.asdict(cfg).items()}
-    meta["ppo"] = PPO_KWARGS
+    meta["ppo"] = ppo_kwargs
     (args.run / "config.json").write_text(json.dumps(meta, indent=1), encoding="utf-8")
 
     base_seed = args.seed * 1000
@@ -140,17 +145,15 @@ def main() -> None:
         model = PPO.load(latest, env=venv, device="cpu")
         print(f"resumed at {model.num_timesteps} steps", flush=True)
     elif args.init:
-        model = PPO.load(args.init, env=venv, device="cpu")
+        model = PPO.load(args.init, env=venv, device="cpu", learning_rate=args.lr)
         model.num_timesteps = 0
         print(f"initialised from {args.init}", flush=True)
     else:
-        model = PPO("MlpPolicy", venv, seed=args.seed, device="cpu", verbose=0, **PPO_KWARGS)
+        model = PPO("MlpPolicy", venv, seed=args.seed, device="cpu", verbose=0, **ppo_kwargs)
     remaining = args.timesteps - model.num_timesteps
     if remaining > 0:
         model.learn(
-            remaining,
-            callback=Checkpointing(args.run, args.eval_every, args.eval_workers),
-            reset_num_timesteps=False,
+            remaining, callback=_checkpointing(args.run, args.eval_every), reset_num_timesteps=False
         )
     model.save(latest)
     venv.close()

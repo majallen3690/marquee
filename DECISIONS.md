@@ -860,3 +860,23 @@ about 15 minutes.
 **Committed episode sets** (in `marquee.rl.evaluate`, generated from fixed seeds):
 TRAIN_EVAL 40 from the training pool, VALIDATION 20 (checkpoint choice), HELD_OUT 40
 (the gate, never used for a choice), HELD_OUT_2 20 (ablation A2). Seeds are disjoint.
+
+## ADR-024: M7 first gate run failed as pre-registered; amendment proposed, not applied
+
+**Result.** `docs/M7_RESULTS.md`. The learned maker beats both baselines on held-out
+risk-adjusted P&L (1.95 against −0.66 rule-based and −0.04 best fixed rule) and
+generalizes (G10 1.07×, A2 0.90×), but fails G2 (96.4% two-sided steps, threshold 99%)
+and two ablations (A3 REJECT_TAKER 0.43×, A4 +1 momentum trader 0.47×). **The gate is
+recorded as failed.**
+
+**Diagnosis, after the verdict.** G2 as implemented counts resting quotes at step end;
+the policy submits both sides on 100% of steps and the gaps are fills. A3 and A4 move
+the market for every controller (the rule-based maker loses 3.6× more with an extra
+momentum trader); the learned maker is the only profitable controller under A4 and its
+risk-adjusted P&L rises under A3.
+
+**Proposed amendment (needs the author's decision, as the M6 sign-off reserved).**
+G2 counts submitted quotes; an ablation collapses when the policy loses its lead over
+both baselines under that same ablation; re-score on a fresh, committed HELD_OUT_3.
+Nothing is changed in code until the author decides. Re-scoring the same episodes
+under amended criteria is rejected: it would be grading on our own curve.
