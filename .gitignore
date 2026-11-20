@@ -21,3 +21,4 @@ runs/
 .env.*
 .vscode/
 .idea/
+viz/public/replay/

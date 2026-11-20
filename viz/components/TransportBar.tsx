@@ -6,7 +6,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Btn, Lb, Num } from "./primitives";
 import { fmtSimTime } from "@/lib/format";
-import { postControl } from "@/lib/useFeed";
+import type { Controls } from "@/lib/feed";
 import type { History } from "@/lib/history";
 import type { Derived } from "@/lib/derive";
 import type { Frame } from "@/lib/types";
@@ -91,6 +91,7 @@ export function TransportBar({
   d,
   history,
   replay,
+  controls,
   onScrub,
   onLive,
 }: {
@@ -98,6 +99,7 @@ export function TransportBar({
   d: Derived | null;
   history: React.RefObject<History>;
   replay: boolean;
+  controls: Controls;
   onScrub: (t: number) => void;
   onLive: () => void;
 }) {
@@ -114,8 +116,12 @@ export function TransportBar({
         <Btn kind="amber" hint="Esc" onClick={onLive}>
           Back to live
         </Btn>
+      ) : done && controls.restart ? (
+        <Btn kind="on" onClick={controls.restart}>
+          Play again
+        </Btn>
       ) : (
-        <Btn kind={done ? "off" : "on"} hint="Space" onClick={() => void postControl(paused ? "resume" : "pause")}>
+        <Btn kind={done ? "off" : "on"} hint="Space" onClick={() => (paused ? controls.resume() : controls.pause())}>
           {paused ? "Resume" : "Pause"}
         </Btn>
       )}
@@ -126,7 +132,7 @@ export function TransportBar({
             kind={speed === s ? "on" : "seg"}
             onClick={() => {
               setSpeed(s);
-              void postControl("speed", s);
+              controls.setSpeed(s);
             }}
           >
             {s === 0.5 ? "½×" : `${s}×`}

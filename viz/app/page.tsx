@@ -12,10 +12,14 @@ import { Tour, TOUR_AREAS } from "@/components/Tour";
 import { TapePanel } from "@/components/TapePanel";
 import { TransportBar } from "@/components/TransportBar";
 import { derive } from "@/lib/derive";
-import { History } from "@/lib/history";
-import { cutMakerRisk } from "@/lib/levers";
-import { loadHistory, postControl, useFeed } from "@/lib/useFeed";
+import { STATIC_BUILD } from "@/lib/feed";
+import type { History } from "@/lib/history";
+import { useStaticFeed } from "@/lib/staticFeed";
+import { useFeed } from "@/lib/useFeed";
 import type { Frame } from "@/lib/types";
+
+// One build plays the live bridge; the GitHub Pages build plays a recorded run.
+const useMarqueeFeed = STATIC_BUILD ? useStaticFeed : useFeed;
 
 /** Replay: the run as it was at one moment, read from /api/history. */
 interface Scrub {
@@ -24,8 +28,8 @@ interface Scrub {
 }
 
 export default function Live() {
-  const feed = useFeed();
-  const { meta, connection } = feed;
+  const feed = useMarqueeFeed();
+  const { meta, connection, controls } = feed;
   const [scrub, setScrub] = useState<Scrub | null>(null);
   const [explain, setExplain] = useState(false); // Learn mode: plain-English labels + a guided tour
   const [tour, setTour] = useState<number | null>(null);
@@ -35,20 +39,18 @@ export default function Live() {
   const d = useMemo(() => (frame ? derive(history.current, frame, meta) : null), [frame, meta, history]);
 
   const goLive = useCallback(() => setScrub(null), []);
-  const goTo = useCallback(async (t: number) => {
-    try {
-      const payload = await loadHistory();
-      if (payload.frames.length === 0) return;
-      const full = new History();
-      full.backfill(payload);
-      // the last snapshot at or before t (the first one, if t precedes them all)
-      let pick = payload.frames[0];
-      for (const f of payload.frames) if (f.t <= t) pick = f;
-      setScrub({ frame: pick, history: { current: full.slice(pick) } });
-    } catch {
-      /* the bridge is gone; the header already says so */
-    }
-  }, []);
+  const at = feed.at;
+  const goTo = useCallback(
+    async (t: number) => {
+      try {
+        const view = await at(t);
+        if (view) setScrub({ frame: view.frame, history: { current: view.history } });
+      } catch {
+        /* the bridge is gone; the header already says so */
+      }
+    },
+    [at],
+  );
 
   // Below 1440 px the screen shrinks to fit rather than overflow, until the narrow
   // watch-only view is built (DESIGN.md). Above it, nothing changes.
@@ -64,13 +66,13 @@ export default function Live() {
   }, []);
 
   // Keyboard: Space pauses, Shift+C cuts maker risk, Esc leaves Replay. The hints on the buttons are real.
-  const latest = useRef({ frame: feed.frame, meta, replay: false });
-  latest.current = { frame: feed.frame, meta, replay: scrub !== null };
+  const latest = useRef({ frame: feed.frame, controls, replay: false });
+  latest.current = { frame: feed.frame, controls, replay: scrub !== null };
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const el = e.target as HTMLElement | null;
       if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA")) return;
-      const { frame: f, meta: m, replay } = latest.current;
+      const { frame: f, controls: c, replay } = latest.current;
       if (e.code === "Escape" && replay) {
         setScrub(null);
         return;
@@ -78,10 +80,11 @@ export default function Live() {
       if (!f || f.status === "done" || replay) return;
       if (e.code === "Space") {
         e.preventDefault();
-        void postControl(f.status === "paused" ? "resume" : "pause");
-      } else if (e.code === "KeyC" && e.shiftKey) {
+        if (f.status === "paused") c.resume();
+        else c.pause();
+      } else if (e.code === "KeyC" && e.shiftKey && c.cut) {
         e.preventDefault();
-        void cutMakerRisk(m);
+        c.cut();
       }
     };
     window.addEventListener("keydown", onKey);
@@ -103,6 +106,7 @@ export default function Live() {
         meta={meta}
         connection={connection}
         replay={scrub !== null}
+        recorded={feed.recorded}
         explain={explain}
         onToggleExplain={() => {
           setExplain(!explain);
@@ -121,7 +125,7 @@ export default function Live() {
         </Panel>
         <BookPanel frame={frame} d={d} history={history} explain={explain} />
         <div className="seam" style={{ gridArea: "side", gridTemplateRows: "auto minmax(0, 1fr)" }}>
-          <LeverTicket frame={frame} meta={meta} d={d} replay={scrub !== null} explain={explain} />
+          <LeverTicket frame={frame} meta={meta} d={d} replay={scrub !== null} explain={explain} onCut={controls.cut} />
           <TapePanel frame={frame} meta={meta} explain={explain} />
         </div>
         <AgentsTable frame={frame} meta={meta} history={history} mid={d?.mid ?? null} explain={explain} />
@@ -131,6 +135,7 @@ export default function Live() {
         d={d}
         history={history}
         replay={scrub !== null}
+        controls={controls}
         onScrub={(t) => void goTo(t)}
         onLive={goLive}
       />

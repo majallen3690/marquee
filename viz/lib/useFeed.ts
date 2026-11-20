@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import type { Feed } from "./feed";
+import { cutMakerRisk } from "./levers";
 import { History, type HistoryPayload } from "./history";
 import type { Connection, Frame, Meta } from "./types";
 
@@ -9,7 +11,7 @@ const RENDER_EVERY_MS = 100; // React sees 10 frames/s; History still sees all 2
 /** Single WebSocket feed with reconnect. Frames land in `history` (a ref) at
  * the wire rate; React state updates at 10 Hz so the tree does not re-render
  * on every frame. */
-export function useFeed() {
+export function useFeed(): Feed {
   const [frame, setFrame] = useState<Frame | null>(null);
   const [meta, setMeta] = useState<Meta | null>(null);
   const [connection, setConnection] = useState<Connection>("connecting");
@@ -76,7 +78,30 @@ export function useFeed() {
     };
   }, []);
 
-  return { frame, meta, connection, history };
+  return {
+    frame,
+    meta,
+    connection,
+    history,
+    recorded: false,
+    controls: {
+      pause: () => void postControl("pause"),
+      resume: () => void postControl("resume"),
+      setSpeed: (s) => void postControl("speed", s),
+      cut: () => void cutMakerRisk(meta),
+      restart: null,
+    },
+    at: async (t) => {
+      const payload = await loadHistory();
+      if (payload.frames.length === 0) return null;
+      const full = new History();
+      full.backfill(payload);
+      // the last snapshot at or before t (the first one, if t precedes them all)
+      let pick = payload.frames[0];
+      for (const f of payload.frames) if (f.t <= t) pick = f;
+      return { frame: pick, history: full.slice(pick) };
+    },
+  };
 }
 
 /** Re-emit a value at most every `ms` — drives the tiles at ~4 Hz. */

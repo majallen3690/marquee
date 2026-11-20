@@ -4,7 +4,7 @@
  * in amber) and one button. It fires the scenario's own scripted lever. */
 
 import { Btn, Lb, Panel } from "./primitives";
-import { cutMakerRisk, presetFor } from "@/lib/levers";
+import { presetFor } from "@/lib/levers";
 import type { Derived } from "@/lib/derive";
 import type { Frame, Meta } from "@/lib/types";
 
@@ -22,12 +22,14 @@ export function LeverTicket({
   d,
   replay,
   explain,
+  onCut,
 }: {
   frame: Frame | null;
   meta: Meta | null;
   d: Derived | null;
   replay: boolean;
   explain: boolean;
+  onCut: (() => void) | null;
 }) {
   if (!meta || !frame || !d) {
     return (
@@ -41,8 +43,10 @@ export function LeverTicket({
   const makers = meta.agents.filter((a) => a.class === "market_maker");
   const preset = presetFor(meta);
   const after = (aid: number, param: string) => preset.find((p) => p.aid === aid && p.param === param)?.value;
-  const done = frame.status === "done" || replay;
-  const status = replay
+  const done = frame.status === "done" || replay || onCut === null;
+  const status = onCut === null
+    ? "This is a recorded run, so the lever is fixed at 30 s. To pull it yourself, run the live version: uv run marquee-demo."
+    : replay
     ? "Replay shows the past. Go back to live to change the market."
     : frame.status === "done"
     ? "The run is complete: nothing left to cut."
@@ -81,7 +85,7 @@ export function LeverTicket({
             </div>
           ))}
         </div>
-        <Btn kind={done ? "off" : "amber"} hint="⇧C" h={32} full onClick={() => void cutMakerRisk(meta)}>
+        <Btn kind={done ? "off" : "amber"} hint="⇧C" h={32} full onClick={() => onCut?.()}>
           Cut maker risk
         </Btn>
         <span className="font-sans text-[12px] leading-[17px] text-ink-2">{status}</span>

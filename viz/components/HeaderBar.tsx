@@ -10,6 +10,7 @@ export function HeaderBar({
   meta,
   connection,
   replay,
+  recorded,
   explain,
   onToggleExplain,
 }: {
@@ -17,6 +18,7 @@ export function HeaderBar({
   meta: Meta | null;
   connection: Connection;
   replay: boolean;
+  recorded: boolean;
   explain: boolean;
   onToggleExplain: () => void;
 }) {
@@ -31,7 +33,9 @@ export function HeaderBar({
           ? { dot: "warn" as const, text: "Run complete" }
           : frame.status === "paused"
             ? { dot: "warn" as const, text: "Paused" }
-            : { dot: "live" as const, text: "Live" };
+            : recorded
+              ? { dot: "live" as const, text: "Recorded run" }
+              : { dot: "live" as const, text: "Live" };
 
   return (
     <header className="flex items-center gap-6 bg-panel px-3">
