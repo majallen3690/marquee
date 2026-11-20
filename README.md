@@ -1,32 +1,64 @@
 # marquee
 
-A market-microstructure sandbox: a from-scratch limit order book and matching engine,
-plus a multi-agent simulation in which heterogeneous trading agents — market makers,
-momentum traders, noise traders, and later RL-trained agents — interact. Price
-discovery, liquidity dynamics, volatility clustering, and flash-crash phenomena emerge
-from agent interaction; nothing is scripted.
+**Pull the liquidity out of a simulated market and watch what the price does.**
+
+Eleven trading agents (two market makers, three trend-followers, six random
+traders) trade through a limit order book and matching engine written for this
+project. At 30 seconds one lever changes one thing: the market makers' risk
+limits. Nobody tells the price what to do.
+
+![the live instrument, 7 seconds after the lever](docs/live-v3.png)
+
+**What happens, measured.** On the committed seed the price falls **107.5 ticks
+(about 1.1%) in 5 seconds**, 3.8 times the largest 5-second swing of the 15
+seconds before. The same seed with no lever *rises* 58 ticks over the same 5
+seconds. Across 30 seeds, the lever roughly **doubles** how far the price moves
+in the next 5 seconds (median 65 ticks against 27 without it; bigger on 23 of 30
+seeds). The direction depends on the order flow, not on the lever: on some seeds
+it spikes up instead. The committed seed is the deepest fall of the 30 and was
+chosen for the demo. Take out the three trend-followers and the committed seed
+moves 30.5 ticks instead of 107.5, so they are the amplifier. See
+[docs/SEED_SWEEP.md](docs/SEED_SWEEP.md).
+
+**The shock is scripted, the outcome is not.** And every run, including one you
+perturb by hand, replays byte for byte from its seed.
 
 **This is a research and education tool. It is not a trading product and nothing here
 is financial advice. No real orders are placed anywhere.**
 
+## What is in it
+
+- **Matching engine**: price-time priority, property-tested against a shadow book
+  (406k messages/s).
+- **Simulation kernel**: event-driven and deterministic, byte-identical replay from a
+  seed (35k events/s with agents and recording).
+- **Agents and calibration**: rule-based makers, momentum and noise traders whose
+  interaction reproduces four stylized facts of real markets (fat tails, volatility
+  clustering, no linear predictability, long-memory order flow).
+- **Live instrument**: `uv run marquee-demo` opens it in a browser. Pull the lever
+  yourself, pause and click the timeline to replay any moment, or switch on
+  **Learn** for plain-English labels and a guided tour. See [DEMO.md](DEMO.md).
+
+## How this was built
+
+Specified and directed by the author; implemented with Claude, Anthropic's coding
+agent (commits say so). The claims are held by tests rather than by prose:
+
+| Claim | Held by |
+|---|---|
+| The engine is correct | property tests against a shadow book (`tests/test_engine_*`) |
+| Runs replay exactly, even when perturbed by hand | `tests/test_live_replay.py`, `tests/test_scenario_replay.py` |
+| The stylized facts emerge | `tests/test_m4_gate.py` |
+| The lever, not the seed, moves the committed run | `tests/test_m5_crash.py` (same seed, with and without the lever) |
+| The lever amplifies in general, and how much | `tests/test_seed_sweep.py` (30 seeds; `pytest -m slow`) |
+| The number on screen is the number the tests assert | `tests/test_bridge.py::test_ui_mid_series_is_the_gate_series` |
+
 ## Status
 
-| Milestone | Scope | Status |
-|---|---|---|
-| M0 | Scaffold, toolchain, core design ADRs | done |
-| M1 | Matching engine (property-tested, deterministic, 406k msgs/sec) | done |
-| M2 | Simulation kernel + agent API (byte-identical replay, 35k events/sec) | done |
-| M3 | Rule-based agents — emergent two-sided market, script-gated | done |
-| M4 | Calibration: fat tails, volatility clustering, order-flow memory all emerge | done |
-| M5 | Live visualization + emergent flash-crash demo | done |
-| M6–M8 | Multi-agent RL (design note, training, integration) | next |
-
-**Phase 1 is complete.** `uv run marquee-demo` opens the live instrument: watch a
-flash crash emerge from agent interaction, pull the market-maker risk lever
-yourself, and watch the regime change. Every run — including one you perturb by
-hand — reproduces byte-for-byte from its seed. See [DEMO.md](DEMO.md).
-
-![the instrument, mid-crash](docs/m5-live-perturb.png)
+Phase 1 (engine, kernel, agents, calibration, live instrument) is complete.
+Phase 2, a reinforcement-learning market maker, has a written design
+([RL_DESIGN.md](RL_DESIGN.md)); training has not started. Milestone history is in
+[PROGRESS.md](PROGRESS.md).
 
 ## Quickstart
 

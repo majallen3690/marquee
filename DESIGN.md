@@ -1,104 +1,103 @@
-# DESIGN.md — marquee visual system
+# DESIGN.md — marquee visual system (v3, "departure board")
 
-Recorded as ADR-016. Binding for all M5+ UI work. Styling lives ONLY in the
-primitives listed at the bottom; screens compose primitives and never restyle.
+Supersedes v1 (green terminal) and the v2 amendments. Decision record: ADR-018.
+Design canvas (static boards built from a real seeded run):
+https://claude.ai/artifact/GYXCs4fpaYsD6xqQr1ybzu
 
-## Direction: instrument, not dashboard
+## Direction: a departure board for a market
 
-The benchmark object is a scientific/trading instrument — a Bloomberg keyboard,
-an oscilloscope, a TT ladder — not a SaaS dashboard. One dense, full-viewport
-screen. Panels are separated by hairline rules, never floating cards. Nothing
-has a border radius. Nothing has a drop shadow. Nothing bounces. The interface
-is judged by how it looks while *numbers are moving through it*.
+An instrument you can watch from across a room. The figures a room must read flip on
+split-flap tiles. Labels are signage: condensed capitals. Panels butt together on 1 px
+seams the way TradingView and exchange terminals pack a screen. Nothing decorative:
+every pixel is data, a label for data, or a seam.
 
-The one thing a viewer should remember: **a wall of calm green/red figures, and
-the moment the wall tears** — the flash crash arriving as a visible regime
-change in an instrument that until then looked bored.
+Two rules decide most arguments:
 
-## Color tokens (CSS variables, dark only — instruments have one face)
+1. **Amber means one thing: a human changed a rule here.** The lever, the lever line,
+   the scheduled-change table, the amber tick on a sparkline. Never a warning, never
+   decoration.
+2. **No dead controls.** A tab, button, menu or shortcut hint is drawn only if it works.
+   Unbuilt pages do not appear in the nav.
 
-```css
---bg-0:      #0B0F0D;  /* page — near-black with a cold phosphor cast */
---bg-1:      #101512;  /* panel interior */
---bg-2:      #161D19;  /* hover / selected row */
---hairline:  #1E2A24;  /* ALL borders. 1px. No other border color exists. */
---text-1:    #D6E2DA;  /* primary figures */
---text-2:    #5C6E64;  /* labels, axes, secondary */
---text-3:    #33413A;  /* faint — grid lines, disabled */
---bid:       #33E087;  /* bids, up-ticks. Fill variant: 18% alpha. */
---ask:       #F4544C;  /* asks, down-ticks. Fill variant: 18% alpha. */
---accent:    #FFB454;  /* amber — interaction, cursor, perturbation, alerts.
-                          The ONLY non-semantic color. Use sparingly. */
-```
+## Tokens (CSS variables in `viz/app/globals.css` — the only place colors and type live)
 
-Rules: no gradients anywhere; no purple/indigo ever; green/red are reserved for
-market semantics (never for buttons or status); amber marks the human's hand —
-controls, the perturbation lever, the crash marker on the chart.
-
-## Typography
-
-One family: **IBM Plex Mono** (self-hosted via @fontsource — the demo must work
-offline). Terminal-true: every character the UI renders is tabular by nature.
-Hierarchy comes from size, weight, and case — never from a second family.
-
-| Role | Size/weight | Notes |
+| Token | Value | Use |
 |---|---|---|
-| Mid price (ladder center) | 22px / 600 | the largest number on screen |
-| Panel figures | 13px / 400 | default data size; 20px row height |
-| Dense figures (tape, depth) | 12px / 400 | 18px row height |
-| Micro-labels | 11px / 500 | UPPERCASE, +0.08em tracking, --text-2 |
-| Axis / meta | 10px / 400 | --text-2 |
+| `--color-gutter` | `#0e0e0d` | page, the 1 px seams |
+| `--color-panel` | `#171614` | panel surface |
+| `--color-tile` | `#24231f` | split-flap tiles, selected rows, empty bars |
+| `--color-seam` | `#2e2d29` | all rules |
+| `--color-ink-1` | `#edebe6` | figures, primary text |
+| `--color-ink-2` | `#b4afa6` | labels, secondary text (8.3:1 on panel) |
+| `--color-ink-3` | `#8c887f` | marks and tertiary (5.1:1 on panel) |
+| `--color-bid` | `#3fb8a4` | bids, buys, up (7.4:1) |
+| `--color-ask` | `#ef7a6f` | asks, sells, down (6.6:1) |
+| `--color-amber` | `#e3a84a` | human hand (8.6:1) |
 
-Wordmark: `MARQUEE` 13px/600, +0.2em tracking, with the `Q` in --accent.
-Direction glyphs are text (`▲ ▼ ·`), never emoji (banned by the brief).
+Bid and ask are never the only carrier of direction: ▲▼ and signs always accompany.
 
-## Spacing & structure
+## Type
 
-4px base grid; panel padding 12px; ladder/tape rows 20px/18px. Full-viewport
-CSS grid, **no page scroll**:
+- **Barlow Semi Condensed 600/700, uppercase, +0.06em** — signage: labels, tabs, buttons, chips.
+- **Barlow 400/500** — prose and plain-English subtitles.
+- **B612 Mono 400/700** — every figure and the tiles. Drawn for Airbus cockpit
+  displays; no digit is mistaken for another and nothing shifts as values change.
+- **Minimum size 11 px.** Figures 12 px in rows, 14 px in the strip, 17 px for the mid tiles.
 
-```
-┌──────────────────────────────────────────────────────────┐ 28px header
-│ MARQUEE   m5-flash-crash   SIM 00:31.204   ● LIVE  1.0×  │
-├──────────┬────────────────────────────────┬──────────────┤
-│ CONTROLS │ PRICE                          │ BOOK         │
-│ AGENTS   │ (canvas chart, flex)           │ (ladder,     │
-│ 232px    ├────────────────────────────────┤  296px)      │
-│          │ TAPE (140px)                   │              │
-└──────────┴────────────────────────────────┴──────────────┘
-```
+## Structure
 
-## Motion rules (restraint is the aesthetic)
+Header 40 px · stat strip 56 px · body (chart | book 280 | lever + tape 280, agents
+table beneath the chart 196) · transport 40 px. Tab row 30 px, data rows 20 px, 10 px
+padding, 1 px seams. The page never scrolls.
 
-1. Data never animates position. Numbers change instantly.
-2. A changed price/qty cell flashes its semantic color at 25% alpha and decays
-   linearly over 300ms. This is the heartbeat of the whole interface.
-3. Controls: 100ms linear background change on hover. No easing curves, no
-   transforms, no scale effects.
-4. The chart draws continuously; the perturbation moment gets a 1px amber
-   vertical rule with a `PERTURB` tag — the only annotation.
-5. Nothing else moves. If it isn't rule 1–4, it doesn't animate.
+The stat strip carries one headline for the crash (**peak move since the lever, in 5 s,
+and its multiple of the worst normal 5 s**) then supporting figures, each with a
+plain-English subtitle. Expert term as label, plain version beneath.
 
-## The ladder (the product)
+## The headline number
 
-Center-out layout: asks stack upward above the spread row, bids downward below.
-Columns: `depth bar+qty | price | cum`. Depth bars grow horizontally from the
-qty edge in 18%-alpha semantic fill; the bar IS the data visualization — no
-separate depth chart. The spread row between sides carries mid (22px), spread
-in ticks, and last-trade direction glyph. Price column right-aligned, qty
-right-aligned, all tabular. Empty side: `— NO BIDS —` in --text-2 (a designed
-state; the flash crash makes it real).
+Measured exactly as the committed crash gate measures it (`tests/test_m5_crash.py`):
+the bridge samples the mid on the 100 ms grid and the client computes the move over
+the 5 s after the lever and the worst-normal range over the 15 s before it. At the
+committed seed this is ▼ 107.5, 3.8×. It is derived from the feed, never hard-coded,
+so a lever pulled at any other time gets its own honest number.
+
+## Chart
+
+Depth map (teal bids, coral asks, brighter = more size) under the mid line; dashed VWAP;
+the amber lever line and flag; a TradingView-style range box measuring the drop;
+numbered engine events on the line with a key ("What the engine did"); O/H/L/C legend;
+right axis with last-price and VWAP pills; volume and net-taker-flow pane. One canvas,
+redrawn at 10 Hz from a ref. Flat fills and 1 px lines only.
+
+## Motion
+
+Performance budget: no shadow, blur, glow or gradient anywhere.
+1. A split-flap tile turns once (120 ms) when its digit changes. Tiles update at ~4 Hz.
+2. Changed figures in the book and tape flash their semantic color, 300 ms linear decay.
+3. Nothing else moves. `prefers-reduced-motion` disables both.
 
 ## States
 
-Loading/disconnect: full-panel `AWAITING FEED` / `FEED LOST`, 11px tracked
-uppercase --text-2, centered. Done: `RUN COMPLETE — t=60.000s`. Never blank.
+Never blank. *Awaiting feed* before the first frame. *Feed lost* with the restart
+command. *Paused*, *Run complete* (lever disabled). *Calm*: stat strip reads "lever
+fires in N s", the chart shows a pending lever note. *One-sided book*: the missing side
+reads "no bids" / "no asks" and the spread shows "one-sided". A page that joins after
+the lever shows "—" for the headline rather than a wrong number.
 
-## Primitives (build these first; styling lives here ONLY)
+## Primitives (`viz/components/primitives.tsx`; styling lives here and nowhere else)
 
-`Panel` (hairline frame + micro-label header) · `Num` (formatted figure,
-semantic coloring, flash-on-change) · `MicroLabel` · `TermButton` ·
-`TermSlider` (perturb lever) · `StatusDot` · `Glyph` (▲▼·)
+`Lb` signage label · `Panel` (tab row, seam) · `Num` (flashing figure) · `Tiles`
+(split-flap) · `Btn` (ghost / on / amber / seg / off, with a real shortcut hint) · `Chip` ·
+`Stat` (label, figure, subtitle) · `StatusDot` · `Glyph` · `VoidState`.
 
-Screens compose these. A screen file containing a raw hex color or font-size
-is a review failure (the brief's known failure mode — enforced at the M5 gate).
+## Built and not built
+
+Built: **Live**; **Replay** as timeline scrubbing (click the bottom timeline while paused
+or finished; the screen shows that moment, read-only, labelled Replay; Esc returns); and
+**Learn**, a header toggle that swaps every label for its plain-English name (the trader's
+term moves to the subtitle) and starts a five-step guided tour that outlines one panel at a
+time, with live numbers in the card.
+Designed, not built: Lab, Evaluation (waits for the M7 harness), the narrow watch-only
+view, the no-lever counterfactual line.
+See PROGRESS.md.

@@ -3,7 +3,7 @@
 Read this + DECISIONS.md + ASSUMPTIONS.md and you can continue cold. Update before
 ending any work stretch.
 
-## Current milestone: M6 — COMPLETE. ⛔ **STOPPED FOR USER SIGN-OFF. No M7 code until the user approves the anti-degeneracy analysis.**
+## Current milestone: M6 — COMPLETE. ⛔ **STOPPED FOR USER SIGN-OFF. No M7 code until the user approves the anti-degeneracy analysis.** See the November roadmap below for the proposed amendment.
 
 ## M6 results (2026-07-21) — RL design note, no RL code written
 
@@ -155,6 +155,45 @@ training scripts. Write into DECISIONS.md (ADR-017):
 Then **STOP and present it to the user for sign-off** before any M7 code. This
 is a standing user amendment (2026-07-08), recorded in memory
 (`m6-signoff-amendment`) and non-negotiable.
+
+## Roadmap after the November review (2026-11-20) — supersedes the frontend "Next" list
+
+A second council review (contrarian, first principles, expansionist, outsider, executor,
+peer-reviewed) plus a 30-seed sweep. Verdict: the engine, determinism and test-gated
+claims hold up and are the project's moat in 2026; the headline was a single seed and
+overclaimed "crash" (ADR-020, now fixed); the work was invisible (no remote, a month
+uncommitted) and the M6 sign-off had stalled for four months.
+
+**Done in this pass.** Bridge v2, the Live / Replay / Learn front end and docs committed
+in logical commits; seed sweep + same-seed control + slow test; README rewritten around
+the measured claim with a new screenshot and a "How this was built" table; DEMO.md
+corrected; prices print without thousands separators (B612 Mono gives the comma a full
+cell).
+
+**Now: things only the author can do (this week).**
+1. `gh auth login`, create the public repo, push. Nothing counts until it is visible.
+2. M6 sign-off, in the author's own words: a one-page defence of RL_DESIGN.md §4 and §7
+   written without Claude. Proposed amendment to sign with it: M7's headline question
+   becomes *does a learned market maker soften or deepen the lever's effect?*, measured
+   with the paired seed sweep, not one seed; PPO-vs-baseline P&L becomes a secondary
+   result. Timebox M7 to 3 weeks; if there is no gate result by then, Phase 1 ships alone.
+3. Decide the target role (quant dev, SWE, ML) and the application deadlines; they set
+   how much Phase 2 matters.
+4. Interview prep: explain the matching loop and the replay guarantee at a whiteboard
+   with no notes; optionally re-implement the matching loop by hand, timed.
+
+**Next: build, in order.**
+1. Zero-install demo: a static Replay build (recorded run + history JSON, no backend)
+   hosted on GitHub Pages, linked from the README top, plus a 30-second GIF.
+2. The no-lever line in the UI, from the control run (precomputed per seed for scripted
+   scenarios; a lockstep second kernel for live levers).
+3. A 4–6 page technical note: the sweep, the paired control, the momentum ablation
+   (107.5 → 30.5), and the gate's weakness.
+4. M7, if signed off, per the amended question above.
+
+**Frozen / cut.** No more visual redesign rounds; no Agents / Lab / Evaluation pages
+and no phone layout until the above is done (the 1440 px screen shrinks to fit).
+Independent engine review stays on the list.
 
 ## Blockers / user actions needed
 

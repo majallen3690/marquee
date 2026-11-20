@@ -672,3 +672,91 @@ the baseline could be weak (bounded by the fixed-width quoting curve); detectors
 catch known failure modes only; **a negative result is acceptable and will be
 published as one** — Phase 1 was built to stand alone precisely so Phase 2 can
 fail honestly.
+
+## ADR-018: Instrument v3 — the departure board (supersedes ADR-016's look; pre-M7 UI pass)
+
+**Decision.** Replace the v1 green-terminal look with the v3 "departure board" system in
+DESIGN.md, and rebuild the Live screen on it: a stat strip with one headline for the
+crash, a depth-map chart with the lever, a TradingView-style range box and numbered
+engine events, a price-anchored order book with cumulative depth, a lever ticket, an
+attributed tape, and an agents table. Split-flap tiles for the figures a room must read;
+amber reserved for "a human changed a rule". Design canvas:
+https://claude.ai/artifact/GYXCs4fpaYsD6xqQr1ybzu — every figure on it comes from a real
+seeded run.
+
+**Why.** v1 showed *that* the price fell but not *why*. The demo's narration (DEMO.md)
+says the ladder thins, the spread blows out and momentum piles in; none of that was
+data on screen. The council review of the v9 canvas (a trader, a beginner, a recruiter,
+an executor) converged on: one headline number, causal markers on the chart, plain-English
+subtitles, no dead controls, and a frozen visual identity.
+
+**Rejected.** A separate depth chart (the depth *map* is the history; the book is the
+instant). Green/red for status (those colors mean bid/ask). More visual rounds after
+this one: the identity is frozen; remaining work is content. A "Collapse maker risk"
+label (reads as if the risk collapsed): the button is "Cut maker risk". A scrubber that
+cannot scrub: Live shows a read-only timeline; scrubbing arrives with Replay.
+
+**Scope.** Live only. Agents, Replay, Lab, Evaluation, Learn and the narrow view are
+designed (canvas) and specified (DESIGN.md) but not built; each needs backend work.
+
+## ADR-019: Bridge frame v2 — agent ledger, run stats, and the gate-grid mid series
+
+**Decision.** The bridge frame gains `agents` (per-agent inventory, cash, maker/taker fills,
+volume, maker volume, taker-sell volume since the first lever), `stats` (trade count,
+run VWAP, net taker flow), `mids` (the last 60 samples on the 100 ms grid) and a taker
+agent id on every trade. `/api/meta` gains `scheduled` (the scenario's scripted lever).
+The ledger is accumulated server-side from the trade stream, so a page that connects
+mid-run still shows true totals.
+
+**The mid series is the gate's.** `LiveSession._advance` stops at every 100 ms grid
+instant to sample the mid (carrying the last mid through a one-sided book), exactly as
+`sample_mid_series` does for the committed crash gate. `test_ui_mid_series_is_the_gate_series`
+asserts the live series equals the gate's, element for element, so the headline the UI
+computes (move after the lever, multiple of the worst normal 5 s) is the number the gate
+asserts, at any playback speed. At the committed seed: 107.5 ticks, 3.84×.
+
+**Invariants tested.** Inventory and cash each net to exactly zero across all agents
+(trading is zero-sum); no taker-sell volume is attributed to "after the lever" before
+the lever fires.
+
+**Late joiners and Replay.** `GET /api/history` returns the whole gate-grid mid series, a
+slim frame every 500 ms (book, ledger, stats, lever marks), the volume buckets, and the
+tape cursor. A page that connects (or reconnects) mid-run backfills from it before
+processing live frames, so a reload loses nothing and the headline survives. Replay is
+the same data: with the run paused or finished, clicking the timeline renders the
+snapshot at that time through the same components, read-only, labelled Replay; Esc
+returns to live. The biggest taker-sell burst after the lever is tracked server-side
+for the same reason. Snapshots cost about 1 MB per 60 sim-seconds.
+
+**Known limit.** Replay resolution is 500 ms for the book and 100 ms for the mid. Exact
+event-level replay (re-simulating from `events.jsonl`) is a separate, later piece.
+
+## ADR-020: The lever amplifies; it does not reliably crash (seed sweep, claim reframe)
+
+**Finding.** A 30-seed sweep (`marquee.analysis.seed_sweep`, results in
+`docs/SEED_SWEEP.md`), each seed run with and without the scripted lever, using the
+crash gate's exact metrics. With the lever the median 5 s move is 64.8 ticks against
+27.0 without; the move is bigger than its own same-seed control on 23 of 30 seeds
+(median paired ratio 2.11). The direction is not stable: the price falls on 16 seeds
+and rises on 14. The committed seed 777002 is the deepest fall of the 30. Its own
+no-lever control moves +58 ticks, 2.07× its normal range, so the gate's amplification
+test alone would pass without any lever.
+
+**Decision.**
+1. The headline claim becomes "pulling maker liquidity roughly doubles the next
+   5-second move; on the committed seed that is a 107.5-tick fall, against +58 with no
+   lever". "Crash" applies to the committed seed only and the docs say the seed was
+   chosen. README, DEMO.md and the UI label ("Move since lever") follow.
+2. Two tests hold it: `test_m5_crash.py::test_the_lever_is_the_cause_on_the_committed_seed`
+   (paired control, fast) and `test_seed_sweep.py` (30 seeds, `pytest -m slow`, asserts
+   ≥ 20/30 bigger and a median paired ratio ≥ 1.5, and that direction is mixed).
+3. The committed gate is kept as written (it is a regression test for the demo seed),
+   with its weakness documented rather than hidden.
+
+**Why.** An interviewer's first question about a single-seed result is "did you pick
+the seed?". The answer is now yes, here is the distribution, and here is what holds.
+The reframed claim is smaller and true, which is worth more than a larger one that
+breaks on the second seed.
+
+**Rejected.** Re-tuning the scenario until most seeds crash downward: that would be
+fitting the story, not measuring the market.
