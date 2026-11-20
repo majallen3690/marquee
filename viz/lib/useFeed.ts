@@ -1,37 +1,66 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { Connection, Frame, MidPoint } from "./types";
-import { midValue } from "./format";
+import { History, type HistoryPayload } from "./history";
+import type { Connection, Frame, Meta } from "./types";
 
-const MID_HISTORY_MAX = 2400; // 2 minutes at 20 fps
+const RENDER_EVERY_MS = 100; // React sees 10 frames/s; History still sees all 20
 
-/** Single WebSocket feed with reconnect; accumulates the mid series client-side. */
+/** Single WebSocket feed with reconnect. Frames land in `history` (a ref) at
+ * the wire rate; React state updates at 10 Hz so the tree does not re-render
+ * on every frame. */
 export function useFeed() {
   const [frame, setFrame] = useState<Frame | null>(null);
+  const [meta, setMeta] = useState<Meta | null>(null);
   const [connection, setConnection] = useState<Connection>("connecting");
-  const midHistory = useRef<MidPoint[]>([]);
+  const history = useRef(new History());
+
+  useEffect(() => {
+    fetch("/api/meta")
+      .then((r) => r.json())
+      .then(setMeta)
+      .catch(() => setMeta(null));
+  }, []);
 
   useEffect(() => {
     let ws: WebSocket | null = null;
     let retry: ReturnType<typeof setTimeout> | null = null;
     let closed = false;
+    let lastRender = 0;
+    let ready = false; // false until /api/history has been loaded; frames queue meanwhile
+    let queue: Frame[] = [];
+
+    const accept = (next: Frame) => {
+      history.current.push(next);
+      const now = performance.now();
+      // always render a status change (pause / done) immediately
+      if (now - lastRender >= RENDER_EVERY_MS || next.status !== "live") {
+        lastRender = now;
+        setFrame(next);
+      }
+    };
 
     const connect = () => {
       const proto = location.protocol === "https:" ? "wss" : "ws";
       ws = new WebSocket(`${proto}://${location.host}/ws`);
-      ws.onopen = () => setConnection("live");
+      ready = false;
+      queue = [];
+      ws.onopen = () => {
+        setConnection("live");
+        // A page that joins mid-run (or reconnects) backfills the run so far.
+        loadHistory()
+          .then((p) => history.current.backfill(p))
+          .catch(() => history.current.reset())
+          .finally(() => {
+            ready = true;
+            for (const f of queue) accept(f);
+            queue = [];
+          });
+      };
       ws.onmessage = (event) => {
         const next: Frame = JSON.parse(event.data);
-        if (next.bids.length > 0 && next.asks.length > 0) {
-          const history = midHistory.current;
-          const point = { t: next.t, mid: midValue(next.bids[0][0], next.asks[0][0]) };
-          if (history.length === 0 || point.t > history[history.length - 1].t) {
-            history.push(point);
-            if (history.length > MID_HISTORY_MAX) history.shift();
-          }
-        }
-        setFrame(next);
+        if (ready) accept(next);
+        else queue.push(next);
       };
       ws.onclose = () => {
         if (closed) return;
@@ -47,7 +76,33 @@ export function useFeed() {
     };
   }, []);
 
-  return { frame, connection, midHistory };
+  return { frame, meta, connection, history };
+}
+
+/** Re-emit a value at most every `ms` — drives the tiles at ~4 Hz. */
+export function useThrottled<T>(value: T, ms: number): T {
+  const [out, setOut] = useState(value);
+  const last = useRef(0);
+  useEffect(() => {
+    const now = performance.now();
+    if (now - last.current >= ms) {
+      last.current = now;
+      setOut(value);
+      return;
+    }
+    const id = setTimeout(() => {
+      last.current = performance.now();
+      setOut(value);
+    }, ms - (now - last.current));
+    return () => clearTimeout(id);
+  }, [value, ms]);
+  return out;
+}
+
+export async function loadHistory(): Promise<HistoryPayload> {
+  const response = await fetch("/api/history");
+  if (!response.ok) throw new Error(`history ${response.status}`);
+  return response.json();
 }
 
 export async function postControl(action: string, value?: number): Promise<void> {
@@ -58,11 +113,7 @@ export async function postControl(action: string, value?: number): Promise<void>
   });
 }
 
-export async function postPerturb(
-  agentId: number,
-  param: string,
-  value: number,
-): Promise<void> {
+export async function postPerturb(agentId: number, param: string, value: number): Promise<void> {
   await fetch("/api/perturb", {
     method: "POST",
     headers: { "Content-Type": "application/json" },

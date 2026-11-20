@@ -1,44 +1,43 @@
 @import "tailwindcss";
-@import "@fontsource/ibm-plex-mono/400.css";
-@import "@fontsource/ibm-plex-mono/500.css";
-@import "@fontsource/ibm-plex-mono/600.css";
+@import "@fontsource/barlow/400.css";
+@import "@fontsource/barlow/500.css";
+@import "@fontsource/barlow-semi-condensed/600.css";
+@import "@fontsource/barlow-semi-condensed/700.css";
+@import "@fontsource/b612-mono/400.css";
+@import "@fontsource/b612-mono/700.css";
 
-/* DESIGN.md tokens — the ONLY place colors and type sizes are defined. */
+/* DESIGN.md tokens (v3, departure board) — the ONLY place colors and type are defined. */
 @theme {
-  --color-surface-0: #0b0f0d;
-  --color-surface-1: #101512;
-  --color-surface-2: #161d19;
-  --color-hairline: #1e2a24;
-  --color-ink-1: #d6e2da;
-  --color-ink-2: #5c6e64;
-  --color-ink-3: #33413a;
-  --color-bid: #33e087;
-  --color-ask: #f4544c;
-  --color-accent: #ffb454;
+  --color-gutter: #0e0e0d;
+  --color-panel: #171614;
+  --color-tile: #24231f;
+  --color-seam: #2e2d29;
+  --color-ink-1: #edebe6;
+  --color-ink-2: #b4afa6;
+  --color-ink-3: #8c887f;
+  --color-bid: #3fb8a4;
+  --color-ask: #ef7a6f;
+  --color-amber: #e3a84a;
 
-  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
-
-  --text-mid: 22px;
-  --text-figure: 13px;
-  --text-dense: 12px;
-  --text-micro: 11px;
-  --text-axis: 10px;
+  --font-word: "Barlow Semi Condensed", "Barlow", sans-serif;
+  --font-sans: "Barlow", sans-serif;
+  --font-mono: "B612 Mono", ui-monospace, monospace;
 }
 
 html,
 body {
   height: 100%;
   overflow: hidden; /* the instrument never scrolls (DESIGN.md) */
-  background: var(--color-surface-0);
+  background: var(--color-gutter);
   color: var(--color-ink-1);
-  font-family: var(--font-mono);
-  font-size: var(--text-figure);
-  font-variant-numeric: tabular-nums;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  -webkit-font-smoothing: antialiased;
 }
 
 ::selection {
-  background: var(--color-accent);
-  color: var(--color-surface-0);
+  background: var(--color-amber);
+  color: var(--color-gutter);
 }
 
 *,
@@ -47,7 +46,19 @@ body {
   border-radius: 0 !important; /* instruments have edges */
 }
 
-/* Motion rule 2: changed figures flash semantic color, 300ms linear decay. */
+.n {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Motion: a tile turns once (120 ms) when its digit changes. */
+@keyframes flap {
+  from { transform: scaleY(0.55); }
+  to { transform: scaleY(1); }
+}
+.flap { animation: flap 120ms ease-out; }
+
+/* Changed figures flash their semantic color, 300 ms linear decay. */
 @keyframes cell-flash-bid {
   from { background-color: color-mix(in srgb, var(--color-bid) 25%, transparent); }
   to { background-color: transparent; }
@@ -64,14 +75,38 @@ body {
 .flash-ask { animation: cell-flash-ask 300ms linear; }
 .flash-plain { animation: cell-flash-plain 300ms linear; }
 
-/* Structural full-viewport grid (composition, not styling). */
-.app-grid {
+@media (prefers-reduced-motion: reduce) {
+  .flap, .flash-bid, .flash-ask, .flash-plain { animation: none; }
+}
+
+/* Panels butt together on 1px seams: the grid background IS the seam. */
+.seam {
   display: grid;
-  height: 100vh;
-  grid-template-columns: 232px 1fr 296px;
-  grid-template-rows: 28px minmax(0, 1fr) 150px;
+  gap: 1px;
+  background: var(--color-seam);
+  min-width: 0;
+  min-height: 0;
+}
+
+.app-grid {
+  height: var(--app-h, 100vh);
+  grid-template-rows: 40px 56px minmax(0, 1fr) 40px;
+}
+
+.tour-outline,
+main[data-tour="strip"] [data-panel="strip"],
+main[data-tour="book"] [data-panel="book"],
+main[data-tour="lever"] [data-panel="lever"],
+main[data-tour="chart"] [data-panel="chart"],
+main[data-tour="agents"] [data-panel="agents"] {
+  outline: 1px dashed var(--color-ink-1);
+  outline-offset: -3px;
+}
+
+.live-grid {
+  grid-template-columns: minmax(0, 1fr) 280px 280px;
+  grid-template-rows: minmax(0, 1fr) 196px;
   grid-template-areas:
-    "header header header"
-    "dock chart book"
-    "dock tape book";
+    "chart book side"
+    "agents book side";
 }

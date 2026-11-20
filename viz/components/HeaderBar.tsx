@@ -1,47 +1,57 @@
 "use client";
 
-import { Num, StatusDot } from "./primitives";
+import { Btn, Lb, Num, StatusDot, Tiles } from "./primitives";
 import { fmtSimTime } from "@/lib/format";
-import type { Connection, Frame } from "@/lib/types";
+import { useThrottled } from "@/lib/useFeed";
+import type { Connection, Frame, Meta } from "@/lib/types";
 
 export function HeaderBar({
   frame,
+  meta,
   connection,
-  scenario,
+  replay,
+  explain,
+  onToggleExplain,
 }: {
   frame: Frame | null;
+  meta: Meta | null;
   connection: Connection;
-  scenario: string;
+  replay: boolean;
+  explain: boolean;
+  onToggleExplain: () => void;
 }) {
-  const status =
-    connection === "lost"
-      ? { dot: "off" as const, text: "FEED LOST" }
+  const clock = useThrottled(frame ? fmtSimTime(frame.t) : "00:00.000", 250);
+  const status = replay
+    ? { dot: "warn" as const, text: "Replay" }
+    : connection === "lost"
+      ? { dot: "off" as const, text: "Feed lost" }
       : frame === null
-        ? { dot: "warn" as const, text: "CONNECTING" }
+        ? { dot: "warn" as const, text: "Connecting" }
         : frame.status === "done"
-          ? { dot: "warn" as const, text: "RUN COMPLETE" }
+          ? { dot: "warn" as const, text: "Run complete" }
           : frame.status === "paused"
-            ? { dot: "warn" as const, text: "PAUSED" }
-            : { dot: "live" as const, text: "LIVE" };
+            ? { dot: "warn" as const, text: "Paused" }
+            : { dot: "live" as const, text: "Live" };
 
   return (
-    <header className="flex h-7 items-center gap-4 border-b border-hairline bg-surface-1 px-3 [grid-area:header]">
-      <span className="text-figure font-semibold tracking-[0.2em]">
-        MAR<span className="text-accent">Q</span>UEE
-      </span>
-      <span className="text-micro uppercase tracking-[0.08em] text-ink-2">{scenario}</span>
+    <header className="flex items-center gap-6 bg-panel px-3">
+      <Tiles text="MARQUEE" size={12} hl={3} />
       <span className="flex-1" />
-      <span className="text-dense text-ink-2">
-        SIM <Num value={frame ? fmtSimTime(frame.t) : "—"} tone="plain" />
+      <Btn kind={explain ? "on" : "seg"} onClick={onToggleExplain}>
+        {explain ? "Learn: on" : "Learn"}
+      </Btn>
+      <span className="flex h-[26px] items-center gap-2.5 border border-seam px-2">
+        <Lb tone="faint">Scenario</Lb>
+        <Num value={meta?.scenario ?? "—"} />
+        <Num value={meta ? `seed ${meta.seed}` : ""} tone="dim" />
       </span>
-      <span className="text-dense text-ink-2">
-        {frame ? `${frame.speed}×` : ""}
+      <span className="flex items-center gap-2">
+        <Lb tone="faint">Sim time</Lb>
+        <Tiles text={clock} size={12} />
       </span>
-      <span className="text-dense text-ink-2">
-        {frame ? `${frame.events.toLocaleString("en-US")} EV` : ""}
-      </span>
-      <span className="flex items-center gap-1.5 text-micro uppercase tracking-[0.08em] text-ink-2">
-        <StatusDot tone={status.dot} /> {status.text}
+      <span className="flex items-center gap-1.5">
+        <StatusDot tone={status.dot} />
+        <Lb tone={status.dot === "live" ? "bid" : "dim"}>{status.text}</Lb>
       </span>
     </header>
   );

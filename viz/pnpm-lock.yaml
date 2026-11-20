@@ -8,8 +8,14 @@ importers:
 
   .:
     dependencies:
-      '@fontsource/ibm-plex-mono':
-        specifier: ^5.2.5
+      '@fontsource/b612-mono':
+        specifier: ^5.3.0
+        version: 5.3.0
+      '@fontsource/barlow':
+        specifier: ^5.3.0
+        version: 5.3.0
+      '@fontsource/barlow-semi-condensed':
+        specifier: ^5.3.0
         version: 5.3.0
       next:
         specifier: ^15.5.6
@@ -49,8 +55,14 @@ packages:
   '@emnapi/runtime@1.11.2':
     resolution: {integrity: sha512-kyOl3X0DuTiT1h2ft8r2fYO8JYtU9a9Xis/zBSiGArNaagCOWx90N1k2wxp18czFDH+OgcWGb5ZP/XMt3dcyPA==}
 
-  '@fontsource/ibm-plex-mono@5.3.0':
-    resolution: {integrity: sha512-eTgnZjZEGk1QtD3ZstF+Vclo2HLAni8YMy34/DxllwZvyz1lR/1RF/xTiAquOBO7MvqBx8D2Ig2WCPMVfdZu7Q==}
+  '@fontsource/b612-mono@5.3.0':
+    resolution: {integrity: sha512-G0Ihm+ekqqP5PZJ1zrx6GbeS2q4GDmYnM01zrNrPARRg64GoG0D2pTf+FsbDWvbg/9tVWFRmFIz8xYLjgFrUpg==}
+
+  '@fontsource/barlow-semi-condensed@5.3.0':
+    resolution: {integrity: sha512-EdpQ1GlLMofGqDsQhEw+g6DonNKmzt21p8y/oNbTl4BFzEkqYkFyE2fj25YGxmZBL/LZZGAxe74FlvEWcgc31w==}
+
+  '@fontsource/barlow@5.3.0':
+    resolution: {integrity: sha512-tGR0y6QObRtKv71MOth44222+mdNFM/ZWFWDV1VLzNbG4oK9PNRlyJzmkck4vHAi9ibHBXgt4SlY51amFP55CA==}
 
   '@img/colour@1.1.0':
     resolution: {integrity: sha512-Td76q7j57o/tLVdgS746cYARfSyxk8iEfRxewL9h4OMzYhbW4TAcppl0mT4eyqXddh6L/jwoM75mo7ixa/pCeQ==}
@@ -585,7 +597,11 @@ snapshots:
       tslib: 2.8.1
     optional: true
 
-  '@fontsource/ibm-plex-mono@5.3.0': {}
+  '@fontsource/b612-mono@5.3.0': {}
+
+  '@fontsource/barlow-semi-condensed@5.3.0': {}
+
+  '@fontsource/barlow@5.3.0': {}
 
   '@img/colour@1.1.0':
     optional: true
