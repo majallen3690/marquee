@@ -87,3 +87,73 @@ def test_rest_surface(tmp_path) -> None:
             "/api/perturb", json={"agent_id": 1, "param": "hard_limit", "value": 10}
         )
         assert response.json()["effective_ns"] > 0
+
+
+def test_frame_carries_agent_ledger_and_run_stats(tmp_path) -> None:
+    """Frame v2 (ADR-019): per-agent ledger + run totals. Trading is zero-sum, so
+    inventory and cash must each net to exactly zero across all agents."""
+    session = LiveSession(SCENARIO, tmp_path / "live")
+    session.set_speed(50.0)
+    session.step(0.4)  # 20 sim-seconds
+    frame = session.step(0.1)  # 25 sim-seconds, before the 30 s lever
+    assert len(frame["agents"]) == 11
+    assert {a["cls"] for a in frame["agents"]} == {"market_maker", "momentum", "noise"}
+    assert sum(a["inv"] for a in frame["agents"]) == 0
+    assert sum(a["cash"] for a in frame["agents"]) == 0
+    assert all(a["sold_after"] == 0 for a in frame["agents"])  # no lever yet
+    makers = {m["id"]: m["inv"] for m in frame["makers"]}
+    assert all(a["inv"] == makers[a["id"]] for a in frame["agents"] if a["id"] in makers)
+    stats = frame["stats"]
+    assert stats["trades"] > 0 and stats["vwap"] is not None
+    assert all("tka" in tr for tr in frame["trades"])
+
+
+def test_meta_exposes_the_scheduled_lever(tmp_path) -> None:
+    meta = LiveSession(SCENARIO, tmp_path / "live").meta()
+    assert {p["t"] for p in meta["scheduled"]} == {30_000_000_000}
+    assert len(meta["scheduled"]) == 8
+
+
+def test_ui_mid_series_is_the_gate_series(tmp_path) -> None:
+    """The live session samples the mid on the same 100 ms grid the committed crash
+    gate uses, so the headline the UI computes (move, amplification) is the number
+    the gate asserts, at any playback speed."""
+    from marquee.analysis.stylized_facts import sample_mid_series
+
+    session = LiveSession(SCENARIO, tmp_path / "live")
+    session.set_speed(50.0)
+    for _ in range(40):
+        frame = session.step(0.1)
+        if frame["status"] == "done":
+            break
+    assert frame["status"] == "done"
+    assert frame["mids"] and all(t % 100_000_000 == 0 for t, _ in frame["mids"])
+    gate = sample_mid_series(
+        tmp_path / "live", session.config.self_trade_policy, session.config.horizon_ns, 100_000_000
+    )
+    assert [m for _, m in session.mid_series] == gate
+
+
+def test_history_backfills_and_matches_the_live_ledger(tmp_path) -> None:
+    session = LiveSession(SCENARIO, tmp_path / "live")
+    session.set_speed(50.0)
+    for _ in range(14):  # ~35 sim-seconds: past the 30 s lever
+        frame = session.step(0.05)
+    history = session.history()
+    assert len(history["mids"]) == len(session.mid_series) > 300
+    times = [f["t"] for f in history["frames"]]
+    assert times == sorted(times) and len(times) >= 60  # a slim frame every 500 ms
+    assert all(f["mids"] == [] for f in history["frames"])
+    # Volume buckets add up to the run total, so a late page's volume pane is complete.
+    bucketed = sum(up + dn for _, up, dn in history["vol"])
+    assert bucketed == sum(a["vol"] for a in frame["agents"]) // 2  # each trade has two sides
+    # The server found the biggest sweep after the lever, so the marker survives a reload.
+    assert frame["stats"]["burst"] is not None and frame["stats"]["burst"]["qty"] > 0
+    assert history["last_tid"] >= max(tr["tid"] for tr in frame["trades"])
+
+
+def test_history_endpoint(tmp_path) -> None:
+    app = create_app(SCENARIO, tmp_path / "live")
+    with TestClient(app) as client:
+        body = client.get("/api/history").json()
+        assert set(body) == {"mids", "frames", "vol", "last_tid"}
