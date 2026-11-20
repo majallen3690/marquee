@@ -286,6 +286,67 @@ class MatchingEngine:
             out[resting.agent_id] = out.get(resting.agent_id, 0) + resting.remaining
         return out
 
+    def queue_ahead(self, order_id: OrderId) -> int | None:
+        """Live quantity resting ahead of a live order at its price level (price-time
+        priority: what must trade before it fills). None if the order is not live.
+        Linear in the level's queue; read-only, off the matching path (M7 plumbing,
+        RL_DESIGN §3)."""
+        resting = self._orders.get(order_id)
+        if resting is None:
+            return None
+        side = self._bids if resting.side is Side.BUY else self._asks
+        orders = self._orders
+        ahead = 0
+        for oid in side.levels[resting.price].queue:
+            if oid == order_id:
+                return ahead
+            other = orders.get(oid)
+            if other is not None:  # skip tombstones
+                ahead += other.remaining
+        raise AssertionError(f"live order {order_id} missing from its level queue")
+
+    def own_orders(self, agent_id: AgentId) -> list[tuple[OrderId, Side, Ticks, int]]:
+        """One agent's live orders as (order_id, side, price, remaining), oldest first.
+        Read-only; lets an evaluation harness see any agent's quotes the same way,
+        whatever class it is (M7 detectors G2/G3)."""
+        return sorted(
+            (r.order_id, r.side, r.price, r.remaining)
+            for r in self._orders.values()
+            if r.agent_id == agent_id
+        )
+
+    def snapshot_excluding(self, ts: TimeNs, depth: int, agent_id: AgentId) -> BookSnapshot:
+        """The book as everyone else's orders make it: ``agent_id``'s resting orders
+        removed, levels left empty by that dropped. Read-only. The basis of the
+        learning agent's own-order-excluded marking mid (RL_DESIGN §5 rule 1) and
+        of quoting relative to the rest of the market, never to its own quote."""
+        own_qty: dict[tuple[bool, int], int] = {}
+        own_count: dict[tuple[bool, int], int] = {}
+        for r in self._orders.values():
+            if r.agent_id == agent_id:
+                key = (r.side is Side.BUY, r.price)
+                own_qty[key] = own_qty.get(key, 0) + r.remaining
+                own_count[key] = own_count.get(key, 0) + 1
+
+        def side_view(book: _BookSide, is_bid: bool) -> tuple[LevelView, ...]:
+            # Enough candidate levels that `depth` survive removing own-only levels.
+            n_own = sum(1 for (b, _p) in own_qty if b == is_bid)
+            pick = heapq.nlargest if is_bid else heapq.nsmallest
+            out: list[LevelView] = []
+            for t in pick(depth + n_own, book.levels):
+                level = book.levels[t]
+                qty = level.qty - own_qty.get((is_bid, t), 0)
+                if qty > 0:
+                    count = level.live - own_count.get((is_bid, t), 0)
+                    out.append(LevelView(price=t, qty=qty, order_count=count))
+                    if len(out) == depth:
+                        break
+            return tuple(out)
+
+        return BookSnapshot(
+            ts=ts, bids=side_view(self._bids, True), asks=side_view(self._asks, False)
+        )
+
     def snapshot(self, ts: TimeNs, depth: int = 10) -> BookSnapshot:
         if depth == 1:
             # O(1) amortized L1 fast path (ADR-005): agents poll this on every

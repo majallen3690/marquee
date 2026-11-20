@@ -86,11 +86,12 @@ class LatencyModel:
 class _Ctx:
     """Read-only AgentContext handed to one agent (ADR-007)."""
 
-    __slots__ = ("_kernel", "_rng")
+    __slots__ = ("_kernel", "_rng", "_agent_id")
 
-    def __init__(self, kernel: "SimKernel", rng: np.random.Generator) -> None:
+    def __init__(self, kernel: "SimKernel", rng: np.random.Generator, agent_id: AgentId) -> None:
         self._kernel = kernel
         self._rng = rng
+        self._agent_id = agent_id
 
     @property
     def now(self) -> TimeNs:
@@ -103,9 +104,20 @@ class _Ctx:
     def book(self, depth: int = 10) -> BookSnapshot:
         return self._kernel.engine.snapshot(ts=self._kernel.now, depth=depth)
 
+    def book_excluding_self(self, depth: int = 10) -> BookSnapshot:
+        """The book without this agent's own resting orders (M7, RL_DESIGN §5)."""
+        return self._kernel.engine.snapshot_excluding(self._kernel.now, depth, self._agent_id)
+
+    def queue_ahead(self, order_id: int) -> int | None:
+        """Quantity ahead of one of this agent's OWN live orders; None for any other
+        id, so other agents' queue positions cannot be probed (ADR-011 spirit)."""
+        if self._kernel._order_owner.get(order_id) != self._agent_id:
+            return None
+        return self._kernel.engine.queue_ahead(order_id)
+
 
 class _AgentSlot:
-    __slots__ = ("agent", "ctx", "wake_rng", "mean_wake_interval_ns", "wake_buf")
+    __slots__ = ("agent", "ctx", "wake_rng", "mean_wake_interval_ns", "wake_buf", "periodic")
 
     def __init__(
         self,
@@ -113,16 +125,21 @@ class _AgentSlot:
         ctx: _Ctx,
         wake_rng: np.random.Generator,
         mean_wake_interval_ns: int,
+        periodic: bool = False,
     ) -> None:
         self.agent = agent
         self.ctx = ctx
         self.wake_rng = wake_rng
         self.mean_wake_interval_ns = mean_wake_interval_ns
         self.wake_buf: list[float] = []
+        self.periodic = periodic
 
     def next_interval(self) -> int:
         """Exponential inter-wake time, batch-buffered (same stream-consumption
-        order every run — see LatencyModel)."""
+        order every run — see LatencyModel). A periodic slot wakes on an exact
+        grid and draws nothing: the learning agent's decision clock (M7)."""
+        if self.periodic:
+            return self.mean_wake_interval_ns
         buf = self.wake_buf
         if not buf:
             draws = self.wake_rng.exponential(self.mean_wake_interval_ns, size=128)
@@ -183,13 +200,15 @@ class SimKernel:
 
     # -- setup ---------------------------------------------------------------
 
-    def register_agent(self, agent: Agent, mean_wake_interval_ns: int) -> None:
+    def register_agent(
+        self, agent: Agent, mean_wake_interval_ns: int, periodic: bool = False
+    ) -> None:
         aid = agent.agent_id
         if aid in self._slots:
             raise ValueError(f"duplicate agent_id {aid}")
-        ctx = _Ctx(self, rngmod.stream(self._master_seed, rngmod.DOMAIN_AGENT, aid))
+        ctx = _Ctx(self, rngmod.stream(self._master_seed, rngmod.DOMAIN_AGENT, aid), aid)
         wake_rng = rngmod.stream(self._master_seed, rngmod.DOMAIN_WAKE, aid)
-        self._slots[aid] = _AgentSlot(agent, ctx, wake_rng, mean_wake_interval_ns)
+        self._slots[aid] = _AgentSlot(agent, ctx, wake_rng, mean_wake_interval_ns, periodic)
 
     def schedule_perturbation(
         self, effective_ns: int, agent_id: AgentId, param: str, value: int

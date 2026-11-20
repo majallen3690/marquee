@@ -63,6 +63,14 @@ class AgentContext(Protocol):
 
     def book(self, depth: int = 10) -> BookSnapshot: ...
 
+    def book_excluding_self(self, depth: int = 10) -> BookSnapshot:
+        """The book without this agent's own resting orders (M7)."""
+        ...
+
+    def queue_ahead(self, order_id: OrderId) -> int | None:
+        """Quantity ahead of one of this agent's own live orders, else None (M7)."""
+        ...
+
 
 @runtime_checkable
 class Agent(Protocol):
