@@ -183,8 +183,12 @@ cell).
    with no notes; optionally re-implement the matching loop by hand, timed.
 
 **Next: build, in order.**
-1. Zero-install demo: a static Replay build (recorded run + history JSON, no backend)
-   hosted on GitHub Pages, linked from the README top, plus a 30-second GIF.
+1. ~~Zero-install demo~~ **done 2026-11-20**: `marquee.server.record` writes the run as
+   frames; the static build (`NEXT_PUBLIC_MARQUEE_STATIC=1`) plays it in the browser
+   with no server; `.github/workflows/pages.yml` publishes it on push to main (enable
+   Pages → GitHub Actions once). `?at=<s>` links to a moment. README GIF from exact
+   `?at=` frames. `.github/workflows/ci.yml` now runs ruff, the fast suite, the slow
+   sweep on main, and the front-end build.
 2. The no-lever line in the UI, from the control run (precomputed per seed for scripted
    scenarios; a lockstep second kernel for live levers).
 3. A 4–6 page technical note: the sweep, the paired control, the momentum ablation

@@ -2,6 +2,11 @@
 
 One command, one browser tab, one crash.
 
+No time to install? The recorded run plays in any browser at
+https://majallen3690.github.io/marquee/ (built by `.github/workflows/pages.yml` from
+`uv run python -m marquee.server.record`; the lever is fixed there, since a recording
+cannot change). `?at=29` opens it one second before the lever.
+
 ```
 uv run marquee-demo
 ```

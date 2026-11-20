@@ -7,7 +7,10 @@ traders) trade through a limit order book and matching engine written for this
 project. At 30 seconds one lever changes one thing: the market makers' risk
 limits. Nobody tells the price what to do.
 
-![the live instrument, 7 seconds after the lever](docs/live-v3.png)
+**[Watch it in your browser](https://majallen3690.github.io/marquee/)** (a recorded run, no
+install; add `?at=29` to the link to start just before the lever).
+
+![26 to 40 seconds of the committed run: the lever at 30 s, then the fall](docs/demo.gif)
 
 **What happens, measured.** On the committed seed the price falls **107.5 ticks
 (about 1.1%) in 5 seconds**, 3.8 times the largest 5-second swing of the 15
