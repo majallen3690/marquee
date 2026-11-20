@@ -1,0 +1,79 @@
+# M7 gate scenario (ADR-023): the M5 population with NO perturbation, over a
+# longer horizon. The RL gate (RL_DESIGN §9) must be scored where market making
+# matters. In the M4 calibrated population the rule-based makers are the resting
+# side of 0.3-2% of volume (noise traders supply the liquidity there), so "beat the
+# rule-based maker" would mean beating one that barely trades. Here the makers are
+# the book: maker 1 is the resting side of ~35% of volume and maker 2 of ~12%
+# (about 800 shares per 30 s). M8 adds the M5 lever back to this same population.
+name: m7-makers
+master_seed: 777002
+horizon_ns: 180000000000      # 180 sim-seconds; episodes are random 30 s windows
+self_trade_policy: CANCEL_RESTING   # RL_DESIGN §5 rule 2, for every RL scenario
+latency:
+  agent_to_exchange_ns: 1000000
+  exchange_to_agent_ns: 1000000
+  jitter_ns: 200000
+# Population balance is the crash precondition: makers must BE the book
+# (measured maker share >= 60% is asserted by the gate test) so that pulling
+# them actually removes the liquidity. Noise here is small fast-turnover flow,
+# not resting depth.
+agents:
+  - class: market_maker
+    id: 1
+    mean_wake_interval_ns: 10000000
+    params: {anchor_price: 10000, half_spread: 2, quote_size: 60, skew_per_unit: 0.02,
+             soft_limit: 150, hard_limit: 300, vol_widen_factor: 0.05}
+  - class: market_maker
+    id: 2
+    mean_wake_interval_ns: 15000000
+    params: {anchor_price: 10000, half_spread: 3, quote_size: 80, skew_per_unit: 0.02,
+             soft_limit: 180, hard_limit: 360, vol_widen_factor: 0.04}
+  # Momentum cohort: position-bounded (real trend-followers are), moderate in
+  # the deep pre-T regime, devastating in the thinned post-T regime; the
+  # regime change does the amplification.
+  - class: momentum
+    id: 11
+    mean_wake_interval_ns: 40000000
+    params: {lookback_ns: 400000000, threshold_ticks: 5, order_size: 12, act_pct: 50,
+             max_position: 45, cooldown_wakes: 4}
+  - class: momentum
+    id: 12
+    mean_wake_interval_ns: 60000000
+    params: {lookback_ns: 600000000, threshold_ticks: 6, order_size: 16, act_pct: 40,
+             max_position: 60, cooldown_wakes: 5}
+  - class: momentum
+    id: 13
+    mean_wake_interval_ns: 90000000
+    params: {lookback_ns: 1000000000, threshold_ticks: 8, order_size: 22, act_pct: 35,
+             max_position: 80, cooldown_wakes: 6}
+  # Noise = flow, not depth: small orders, fast cancels, more taking.
+  - class: noise
+    id: 21
+    mean_wake_interval_ns: 20000000
+    params: {anchor_price: 10000, cancel_pct: 40, market_pct: 18, improve_pct: 6,
+             depth_ticks: 6, mean_qty: 3.0, anchor_weight: 0.0002}
+  - class: noise
+    id: 22
+    mean_wake_interval_ns: 25000000
+    params: {anchor_price: 10000, cancel_pct: 45, market_pct: 15, improve_pct: 8,
+             depth_ticks: 5, mean_qty: 2.5, anchor_weight: 0.0002}
+  - class: noise
+    id: 23
+    mean_wake_interval_ns: 30000000
+    params: {anchor_price: 10000, cancel_pct: 40, market_pct: 20, improve_pct: 5,
+             depth_ticks: 8, mean_qty: 4.0, anchor_weight: 0.0002}
+  - class: noise
+    id: 24
+    mean_wake_interval_ns: 35000000
+    params: {anchor_price: 10000, cancel_pct: 42, market_pct: 16, improve_pct: 7,
+             depth_ticks: 6, mean_qty: 3.0, anchor_weight: 0.0002}
+  - class: noise
+    id: 25
+    mean_wake_interval_ns: 40000000
+    params: {anchor_price: 10000, cancel_pct: 38, market_pct: 14, improve_pct: 8,
+             depth_ticks: 5, mean_qty: 2.0, anchor_weight: 0.0002}
+  - class: noise
+    id: 26
+    mean_wake_interval_ns: 30000000
+    params: {anchor_price: 10000, cancel_pct: 45, market_pct: 18, improve_pct: 6,
+             depth_ticks: 7, mean_qty: 3.5, anchor_weight: 0.0002}

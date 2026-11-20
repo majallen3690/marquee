@@ -20,6 +20,7 @@ dependencies = [
     # silently degrades to "Unsupported upgrade request" and the UI shows
     # FEED LOST forever.
     "websockets>=13.0",
+    "gymnasium>=1.0",
 ]
 
 [project.scripts]
@@ -31,6 +32,10 @@ dev = [
     "pytest>=8.3",
     "hypothesis>=6.115",
     "ruff>=0.8",
+]
+train = [
+    "stable-baselines3>=2.4",
+    "torch>=2.5",
 ]
 
 [build-system]
