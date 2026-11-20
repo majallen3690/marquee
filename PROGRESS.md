@@ -192,8 +192,9 @@ cell).
 2. ~~The no-lever line~~ **done 2026-11-20** (ADR-021): the untouched twin of the run,
    drawn dotted from the lever on, with its move in the headline subtitle; served by
    `/api/counterfactual` and carried in the recording.
-3. A 4–6 page technical note: the sweep, the paired control, the momentum ablation
-   (107.5 → 30.5), and the gate's weakness.
+3. ~~Technical note~~ **done 2026-11-20**: `docs/NOTE.md`. Adds the momentum ablation
+   across all 30 seeds and a test for the scenario's "makers are the book" precondition
+   (the file claimed a test asserted it; none did; median depth share is 69%).
 4. M7, if signed off, per the amended question above.
 
 **Frozen / cut.** No more visual redesign rounds; no Agents / Lab / Evaluation pages

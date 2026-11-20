@@ -22,8 +22,8 @@ in the next 5 seconds (median 65 ticks against 27 without it; bigger on 23 of 30
 seeds). The direction depends on the order flow, not on the lever: on some seeds
 it spikes up instead. The committed seed is the deepest fall of the 30 and was
 chosen for the demo. Take out the three trend-followers and the committed seed
-moves 30.5 ticks instead of 107.5, so they are the amplifier. See
-[docs/SEED_SWEEP.md](docs/SEED_SWEEP.md).
+moves 30.5 ticks instead of 107.5, so they are the amplifier. See the
+[technical note](docs/NOTE.md) and [docs/SEED_SWEEP.md](docs/SEED_SWEEP.md).
 
 **The shock is scripted, the outcome is not.** And every run, including one you
 perturb by hand, replays byte for byte from its seed.

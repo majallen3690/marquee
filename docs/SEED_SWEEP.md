@@ -32,6 +32,11 @@ moves +58 ticks, which is itself 2.07× that seed's normal range: the committed 
 amplification test alone would pass with no lever at all. `test_m5_crash.py` now also
 asserts the same-seed comparison (−107.5 with the lever against +58 without).
 
+**Without the three momentum traders** (`docs/seed-sweep-no-momentum.json`) the lever
+still amplifies, by about half as much: median 21.2 ticks against 14.5 for the control,
+larger on 24 of 30 seeds. With them, the lever's move is larger than without them on 25 of
+30 seeds. They are the amplifier, not the cause.
+
 **The gate is weaker than its name.** It measures an unsigned move against the same
 run's recent past. That catches a dislocation, not a crash, and not causation. The
 paired control and this sweep are the evidence for causation; the word "crash" applies
