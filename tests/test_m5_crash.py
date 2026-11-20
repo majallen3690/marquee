@@ -11,6 +11,7 @@ import json
 import os
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 import yaml
@@ -96,3 +97,18 @@ def test_perturbed_run_replays_byte_identically(tmp_path) -> None:
         return dict(line.split(":", 1) for line in result.stdout.strip().splitlines())
 
     assert run("1", tmp_path / "a") == run("2", tmp_path / "b")
+
+
+def test_the_lever_is_the_cause_on_the_committed_seed() -> None:
+    """Control for the headline (ADR-020). The amplification ratio alone is not
+    enough: the same seed with no lever moves +58 ticks in the same window, which
+    is itself 2.07x its worst normal burst. What the lever does on this seed is
+    turn that into a 107.5-tick fall: same flow to 30 s, opposite outcome."""
+    from marquee.analysis.seed_sweep import COMMITTED_SEED, run_one
+
+    with tempfile.TemporaryDirectory() as tmp:
+        lever = run_one(COMMITTED_SEED, True, Path(tmp))
+        control = run_one(COMMITTED_SEED, False, Path(tmp))
+    assert lever.move == -107.5 and lever.pre_worst == control.pre_worst == 28.0
+    assert control.move == 58.0
+    assert lever.move - control.move <= -100

@@ -1,0 +1,422 @@
+[
+ {
+  "seed": 777002,
+  "lever": true,
+  "move": -107.5,
+  "pre_worst": 28.0,
+  "amp": 3.8392857142857144
+ },
+ {
+  "seed": 777002,
+  "lever": false,
+  "move": 58.0,
+  "pre_worst": 28.0,
+  "amp": 2.0714285714285716
+ },
+ {
+  "seed": 1001,
+  "lever": true,
+  "move": 18.5,
+  "pre_worst": 82.0,
+  "amp": 0.22560975609756098
+ },
+ {
+  "seed": 1001,
+  "lever": false,
+  "move": 8.5,
+  "pre_worst": 82.0,
+  "amp": 0.10365853658536585
+ },
+ {
+  "seed": 1002,
+  "lever": true,
+  "move": -83.0,
+  "pre_worst": 22.0,
+  "amp": 3.772727272727273
+ },
+ {
+  "seed": 1002,
+  "lever": false,
+  "move": -28.0,
+  "pre_worst": 22.0,
+  "amp": 1.2727272727272727
+ },
+ {
+  "seed": 1003,
+  "lever": true,
+  "move": -78.0,
+  "pre_worst": 36.0,
+  "amp": 2.1666666666666665
+ },
+ {
+  "seed": 1003,
+  "lever": false,
+  "move": -28.0,
+  "pre_worst": 36.0,
+  "amp": 0.7777777777777778
+ },
+ {
+  "seed": 1004,
+  "lever": true,
+  "move": -13.0,
+  "pre_worst": 27.5,
+  "amp": 0.4727272727272727
+ },
+ {
+  "seed": 1004,
+  "lever": false,
+  "move": 18.5,
+  "pre_worst": 27.5,
+  "amp": 0.6727272727272727
+ },
+ {
+  "seed": 1005,
+  "lever": true,
+  "move": 63.0,
+  "pre_worst": 62.0,
+  "amp": 1.0161290322580645
+ },
+ {
+  "seed": 1005,
+  "lever": false,
+  "move": -30.5,
+  "pre_worst": 62.0,
+  "amp": 0.49193548387096775
+ },
+ {
+  "seed": 1006,
+  "lever": true,
+  "move": -23.0,
+  "pre_worst": 20.0,
+  "amp": 1.15
+ },
+ {
+  "seed": 1006,
+  "lever": false,
+  "move": -31.0,
+  "pre_worst": 20.0,
+  "amp": 1.55
+ },
+ {
+  "seed": 1007,
+  "lever": true,
+  "move": -50.0,
+  "pre_worst": 55.5,
+  "amp": 0.9009009009009009
+ },
+ {
+  "seed": 1007,
+  "lever": false,
+  "move": 119.0,
+  "pre_worst": 55.5,
+  "amp": 2.144144144144144
+ },
+ {
+  "seed": 1008,
+  "lever": true,
+  "move": 40.5,
+  "pre_worst": 30.0,
+  "amp": 1.35
+ },
+ {
+  "seed": 1008,
+  "lever": false,
+  "move": 46.0,
+  "pre_worst": 30.0,
+  "amp": 1.5333333333333334
+ },
+ {
+  "seed": 1009,
+  "lever": true,
+  "move": 73.0,
+  "pre_worst": 79.5,
+  "amp": 0.9182389937106918
+ },
+ {
+  "seed": 1009,
+  "lever": false,
+  "move": 19.0,
+  "pre_worst": 79.5,
+  "amp": 0.2389937106918239
+ },
+ {
+  "seed": 1010,
+  "lever": true,
+  "move": -86.5,
+  "pre_worst": 58.0,
+  "amp": 1.4913793103448276
+ },
+ {
+  "seed": 1010,
+  "lever": false,
+  "move": -21.5,
+  "pre_worst": 58.0,
+  "amp": 0.3706896551724138
+ },
+ {
+  "seed": 1011,
+  "lever": true,
+  "move": 80.0,
+  "pre_worst": 112.0,
+  "amp": 0.7142857142857143
+ },
+ {
+  "seed": 1011,
+  "lever": false,
+  "move": 46.5,
+  "pre_worst": 112.0,
+  "amp": 0.41517857142857145
+ },
+ {
+  "seed": 1012,
+  "lever": true,
+  "move": -37.5,
+  "pre_worst": 55.0,
+  "amp": 0.6818181818181818
+ },
+ {
+  "seed": 1012,
+  "lever": false,
+  "move": 7.0,
+  "pre_worst": 55.0,
+  "amp": 0.12727272727272726
+ },
+ {
+  "seed": 1013,
+  "lever": true,
+  "move": -81.0,
+  "pre_worst": 27.5,
+  "amp": 2.9454545454545453
+ },
+ {
+  "seed": 1013,
+  "lever": false,
+  "move": -21.0,
+  "pre_worst": 27.5,
+  "amp": 0.7636363636363637
+ },
+ {
+  "seed": 1014,
+  "lever": true,
+  "move": 80.0,
+  "pre_worst": 71.5,
+  "amp": 1.118881118881119
+ },
+ {
+  "seed": 1014,
+  "lever": false,
+  "move": -26.0,
+  "pre_worst": 71.5,
+  "amp": 0.36363636363636365
+ },
+ {
+  "seed": 1015,
+  "lever": true,
+  "move": 177.0,
+  "pre_worst": 38.5,
+  "amp": 4.597402597402597
+ },
+ {
+  "seed": 1015,
+  "lever": false,
+  "move": 21.0,
+  "pre_worst": 38.5,
+  "amp": 0.5454545454545454
+ },
+ {
+  "seed": 1016,
+  "lever": true,
+  "move": -66.5,
+  "pre_worst": 32.5,
+  "amp": 2.046153846153846
+ },
+ {
+  "seed": 1016,
+  "lever": false,
+  "move": 28.0,
+  "pre_worst": 32.5,
+  "amp": 0.8615384615384616
+ },
+ {
+  "seed": 1017,
+  "lever": true,
+  "move": 22.5,
+  "pre_worst": 94.0,
+  "amp": 0.2393617021276596
+ },
+ {
+  "seed": 1017,
+  "lever": false,
+  "move": -28.5,
+  "pre_worst": 94.0,
+  "amp": 0.30319148936170215
+ },
+ {
+  "seed": 1018,
+  "lever": true,
+  "move": 131.5,
+  "pre_worst": 78.5,
+  "amp": 1.6751592356687899
+ },
+ {
+  "seed": 1018,
+  "lever": false,
+  "move": -50.5,
+  "pre_worst": 78.5,
+  "amp": 0.643312101910828
+ },
+ {
+  "seed": 1019,
+  "lever": true,
+  "move": 281.5,
+  "pre_worst": 29.5,
+  "amp": 9.542372881355933
+ },
+ {
+  "seed": 1019,
+  "lever": false,
+  "move": 84.0,
+  "pre_worst": 29.5,
+  "amp": 2.847457627118644
+ },
+ {
+  "seed": 1020,
+  "lever": true,
+  "move": -51.0,
+  "pre_worst": 19.0,
+  "amp": 2.6842105263157894
+ },
+ {
+  "seed": 1020,
+  "lever": false,
+  "move": -22.0,
+  "pre_worst": 19.0,
+  "amp": 1.1578947368421053
+ },
+ {
+  "seed": 1021,
+  "lever": true,
+  "move": -16.0,
+  "pre_worst": 56.5,
+  "amp": 0.2831858407079646
+ },
+ {
+  "seed": 1021,
+  "lever": false,
+  "move": 8.0,
+  "pre_worst": 56.5,
+  "amp": 0.1415929203539823
+ },
+ {
+  "seed": 1022,
+  "lever": true,
+  "move": 11.5,
+  "pre_worst": 32.5,
+  "amp": 0.35384615384615387
+ },
+ {
+  "seed": 1022,
+  "lever": false,
+  "move": 7.0,
+  "pre_worst": 32.5,
+  "amp": 0.2153846153846154
+ },
+ {
+  "seed": 1023,
+  "lever": true,
+  "move": -8.5,
+  "pre_worst": 38.5,
+  "amp": 0.22077922077922077
+ },
+ {
+  "seed": 1023,
+  "lever": false,
+  "move": 9.5,
+  "pre_worst": 38.5,
+  "amp": 0.24675324675324675
+ },
+ {
+  "seed": 1024,
+  "lever": true,
+  "move": -38.0,
+  "pre_worst": 28.5,
+  "amp": 1.3333333333333333
+ },
+ {
+  "seed": 1024,
+  "lever": false,
+  "move": 18.0,
+  "pre_worst": 28.5,
+  "amp": 0.631578947368421
+ },
+ {
+  "seed": 1025,
+  "lever": true,
+  "move": -93.5,
+  "pre_worst": 37.0,
+  "amp": 2.527027027027027
+ },
+ {
+  "seed": 1025,
+  "lever": false,
+  "move": 44.5,
+  "pre_worst": 37.0,
+  "amp": 1.2027027027027026
+ },
+ {
+  "seed": 1026,
+  "lever": true,
+  "move": 29.0,
+  "pre_worst": 11.0,
+  "amp": 2.6363636363636362
+ },
+ {
+  "seed": 1026,
+  "lever": false,
+  "move": 38.0,
+  "pre_worst": 11.0,
+  "amp": 3.4545454545454546
+ },
+ {
+  "seed": 1027,
+  "lever": true,
+  "move": 13.0,
+  "pre_worst": 29.0,
+  "amp": 0.4482758620689655
+ },
+ {
+  "seed": 1027,
+  "lever": false,
+  "move": 7.0,
+  "pre_worst": 29.0,
+  "amp": 0.2413793103448276
+ },
+ {
+  "seed": 1028,
+  "lever": true,
+  "move": -82.0,
+  "pre_worst": 83.5,
+  "amp": 0.9820359281437125
+ },
+ {
+  "seed": 1028,
+  "lever": false,
+  "move": -13.5,
+  "pre_worst": 83.5,
+  "amp": 0.16167664670658682
+ },
+ {
+  "seed": 1029,
+  "lever": true,
+  "move": 161.0,
+  "pre_worst": 113.0,
+  "amp": 1.424778761061947
+ },
+ {
+  "seed": 1029,
+  "lever": false,
+  "move": 82.5,
+  "pre_worst": 113.0,
+  "amp": 0.7300884955752213
+ }
+]
