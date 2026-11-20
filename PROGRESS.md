@@ -3,7 +3,29 @@
 Read this + DECISIONS.md + ASSUMPTIONS.md and you can continue cold. Update before
 ending any work stretch.
 
-## Current milestone: M6 — COMPLETE. ⛔ **STOPPED FOR USER SIGN-OFF. No M7 code until the user approves the anti-degeneracy analysis.** See the November roadmap below for the proposed amendment.
+## Current milestone: M7 — IN PROGRESS (signed off 2026-11-20; timebox to 2026-12-11)
+
+The author opened M7 ("m7 begin"), signing off M6 (ADR-023 records it). Built in the
+order RL_DESIGN fixed, harness before training:
+
+1. **Measured** (§13): bare simulator ~75x real time; with training starts capped at
+   40 s, 16 parallel environments give ~1,080 steps/s (1M steps ≈ 15 min).
+2. **Engine plumbing** (tested against a shadow book): `queue_ahead`,
+   `snapshot_excluding`, `own_orders`, opt-in periodic wakes; Phase 1 replays unchanged.
+3. **Environment** `marquee.rl.env`: gymnasium, one seat, random 30 s windows, retire-
+   and-replace entrants so learned and baseline meet an identical market, tape-based
+   accounting with own-excluded mark and terminal inventory walked off the book.
+4. **Detectors G1–G10, ablations A1–A6, baselines, fixed episode sets**
+   (`marquee.rl.evaluate`), each detector tested to trip on its degeneracy.
+5. **Training** `marquee.rl.train` (PPO 2x64, checkpointed, resumable, validated as it
+   trains) and **the gate report** `marquee.rl.report`.
+
+**Gate (ADR-023, stronger than §9):** on 40 held-out episodes in `m7-makers` (the M5
+population without the lever), beat the rule-based maker *and* the best fixed quoting
+rule on risk-adjusted P&L, no detector tripped, no ablation collapse. Held-out
+baselines: rule-based -5,214 mean (RA -0.66), always-join -168 (RA -0.02, trips G7).
+
+## Previous milestone: M6 — COMPLETE, signed off 2026-11-20
 
 ## M6 results (2026-07-21) — RL design note, no RL code written
 

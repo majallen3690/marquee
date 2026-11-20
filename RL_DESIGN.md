@@ -1,6 +1,6 @@
 # RL_DESIGN.md — Phase 2 design note (M6)
 
-**Status: written before any RL code exists. Awaiting sign-off.**
+**Status: signed off by the author 2026-11-20. ADR-023 amends it: the gate is scored in `scenarios/m7-makers.yaml` (the M5 population without the lever) and must also beat the best fixed quoting rule.**
 Binding decisions are mirrored into DECISIONS.md as ADR-017.
 
 ---
