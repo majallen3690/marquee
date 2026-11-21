@@ -896,3 +896,9 @@ call). Fixed here, in code and tests, and committed before anything ran on HELD_
 
 Rejected: re-scoring HELD_OUT under the amended criteria. It would be grading on our
 own curve. The original run stays reproducible with `--gate original --held-out 1`.
+
+**Outcome (2026-11-21): failed, final.** On HELD_OUT_3 the learned maker beats the
+rule-based maker (RA 0.19 against −0.62) but not the best fixed rule (0.191 against
+0.198), and G10 trips (0.56×). Every ablation passes the amended rule. The cause is one
+episode lost 59,753 to inventory carried near the limit into a move: missing tail-risk
+control, not a measurement artifact. M7 closes as failed; see `docs/M7_RESULTS.md`.

@@ -1,4 +1,4 @@
-# M7 gate, first run: not passed
+# M7 gate: not passed (two runs)
 
 **Model:** `models/m7-stage1.zip` (PPO 2×64, Stage 0 for 300k steps, then Stage 1; the
 checkpoint at 1.2M Stage-1 steps, chosen by the 20 VALIDATION episodes).
@@ -8,7 +8,60 @@ risk-adjusted P&L (mean ÷ std), with no detector tripped and no ablation collap
 **Raw numbers:** `docs/m7-results.json`; reproduce with
 `uv run --group train python -m marquee.rl.report --model models/m7-stage1.zip`.
 
-## Verdict as pre-registered: FAILED
+
+## Second run (amended gate, ADR-024, fresh HELD_OUT_3): FAILED — final
+
+The author accepted the amendment below; it was written into code, tests and ADR-024
+and committed (`49eda61`) before anything ran on HELD_OUT_3, with the model unchanged.
+One shot, result stands. Raw numbers: `docs/m7-results-heldout3.json`; reproduce with
+`uv run --group train python -m marquee.rl.report --model models/m7-stage1.zip --gate amended --held-out 3 --out docs/m7-results-heldout3.json`.
+
+| Requirement | Result |
+|---|---|
+| beats the rule-based maker | **yes**: 0.19 against −0.62 (wins 32 of 40 paired episodes, sign test p = 0.0002) |
+| beats the best fixed rule | **no**: 0.191 against 0.198 (wins 22 of 40, p = 0.64) |
+| detectors G1–G10 clean | **no**: G10 held-out mean is 0.56× its training-seed mean, threshold 0.75× |
+| no ablation collapse (amended) | **yes**: it keeps its lead under every ablation |
+
+| 40 HELD_OUT_3 episodes | mean P&L | std | risk-adjusted | median |
+|---|---|---|---|---|
+| **learned** | +1,970 | 10,311 | 0.19 | +4,001 |
+| rule-based maker | −5,527 | 8,903 | −0.62 | |
+| best fixed rule (2, 2, 1) | +1,623 | 8,186 | 0.20 | +3,589 |
+| do-nothing | +831 | 5,934 | 0.14 | |
+| random | −2,876 | 14,792 | −0.19 | |
+
+G2 (submitted both sides) 99.85%, passes; resting both sides at step end 96.0%,
+reported only. G1, G3–G7 pass. Every ablation keeps the lead over both baselines;
+under one more momentum trader the learned maker makes +1,154 while the rule-based
+maker loses 24,662 and the best fixed rule 7,647.
+
+### What failed, on inspection (after the verdict; it does not change it)
+
+**One episode.** Seed 5,000,004: the learned maker lost **59,753** (inventory P&L
+−65,468, spread capture +5,715) and ended long 339 shares against a 360 limit; the
+best fixed rule lost 8,006 on the same episode. Without that one episode the learned
+maker's risk-adjusted P&L would be 1.42 against 0.23. The same 40 episodes at latency
+×0.5 and ×1.5 score 2.69 and 2.26, because the policy does not end up in that position.
+
+This is a real weakness, not a measurement artifact: **the policy has no tail-risk
+control.** It builds inventory into a sustained move until the hard limit stops it,
+and the penalty γ(q/q_max)² = 0.01 at the limit is too small to discourage that. The
+gate measures mean ÷ std over 40 episodes, so one such loss decides it. That is what a
+risk-adjusted gate is for.
+
+### What M7 shows, honestly
+
+A PPO maker trained in this simulator reliably beats the hand-written rule-based maker
+(two independent held-out sets, p < 0.001 on the second) and survives every
+market-shifting ablation better than either baseline, but it does **not** reliably beat
+the best fixed quoting rule, because of rare large inventory losses. A fix would be a
+reward change (a larger or convex inventory penalty, or a drawdown term), which needs
+the author's sign-off and a new committed held-out set; it is not part of M7.
+
+## First run (original gate, HELD_OUT)
+
+### Verdict as pre-registered: FAILED
 
 | Requirement | Result |
 |---|---|

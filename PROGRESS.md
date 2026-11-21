@@ -3,7 +3,18 @@
 Read this + DECISIONS.md + ASSUMPTIONS.md and you can continue cold. Update before
 ending any work stretch.
 
-## Current milestone: M7 — IN PROGRESS (signed off 2026-11-20; timebox to 2026-12-11)
+## Current milestone: M7 — CLOSED, gate FAILED (2026-11-21)
+
+**Result ([docs/M7_RESULTS.md](docs/M7_RESULTS.md), ADR-024).** Run 1 (original gate,
+HELD_OUT) failed on G2 as implemented and two ablations. The author accepted an
+amendment, fixed in code before a single run on fresh HELD_OUT_3. Run 2 failed, final:
+beats the rule-based maker (RA 0.19 vs −0.62, 32/40 wins) and survives every ablation
+better than both baselines, but ties the best fixed rule (0.191 vs 0.198) and trips G10,
+because one episode lost 59,753 on inventory near the limit. Diagnosis: no tail-risk
+control. Next is the author's call: M8 as planned, or an M7b with a reward change
+(needs sign-off) and a new committed held-out set.
+
+### How M7 was built
 
 The author opened M7 ("m7 begin"), signing off M6 (ADR-023 records it). Built in the
 order RL_DESIGN fixed, harness before training:
