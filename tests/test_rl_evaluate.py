@@ -6,6 +6,7 @@ from marquee.rl.evaluate import (
     HALF_LIFE_MAX_STEPS,
     HELD_OUT,
     HELD_OUT_2,
+    HELD_OUT_3,
     TRAIN_EVAL,
     VALIDATION,
     detectors,
@@ -34,13 +35,14 @@ def row(pnl=100.0, q_path=(0, 10, 5, 2, 1, 0), **kw) -> dict:
 
 
 def test_episode_sets_are_fixed_and_disjoint() -> None:
-    sets = [TRAIN_EVAL, VALIDATION, HELD_OUT, HELD_OUT_2]
-    assert [len(s) for s in sets] == [40, 20, 40, 20]
+    sets = [TRAIN_EVAL, VALIDATION, HELD_OUT, HELD_OUT_2, HELD_OUT_3]
+    assert [len(s) for s in sets] == [40, 20, 40, 20, 40]
     seeds = [{e.master_seed for e in s} for s in sets]
-    for i in range(4):
-        for j in range(i + 1, 4):
+    for i in range(len(sets)):
+        for j in range(i + 1, len(sets)):
             assert not seeds[i] & seeds[j]
     assert HELD_OUT[0].master_seed == 2_000_001  # committed, not drawn at runtime
+    assert HELD_OUT_3[0].master_seed == 5_000_001
 
 
 def test_a_clean_market_maker_passes_and_each_degeneracy_trips_its_detector() -> None:

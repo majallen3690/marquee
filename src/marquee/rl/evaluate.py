@@ -11,6 +11,7 @@ Episode sets (fixed, committed, disjoint)
     VALIDATION   20 episodes for picking checkpoints during training.
     HELD_OUT     40 episodes: the gate. Never used for any choice.
     HELD_OUT_2   20 more held-out episodes: ablation A2.
+    HELD_OUT_3   40 fresh held-out episodes for any re-score after the first gate run.
 
 The gate (ADR-023 strengthens §9): on HELD_OUT, risk-adjusted P&L (mean / std) beats
 both the rule-based maker *and* the best fixed quoting rule, with no detector tripped
@@ -50,6 +51,9 @@ TRAIN_EVAL = _episodes(40, 0, 11, pool=EnvConfig().seed_pool)
 VALIDATION = _episodes(20, 3_000_001, 12)
 HELD_OUT = _episodes(40, 2_000_001, 13)
 HELD_OUT_2 = _episodes(20, 4_000_001, 14)
+# Committed after the first gate run (ADR-024) and before anything was run on it: a
+# re-score must not reuse the episodes the first verdict was read from.
+HELD_OUT_3 = _episodes(40, 5_000_001, 15)
 
 
 # --- policies (picklable specs, built inside the worker) ---------------------
