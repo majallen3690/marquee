@@ -179,6 +179,7 @@ class MarketMakingEnv(gym.Env):
             "I": 0.0,
             "abs_dW": 0.0,
             "steps_two_sided": 0,
+            "steps_submitted_two_sided": 0,
             "spreads": [],
             "q_path": [],
         }
@@ -225,6 +226,9 @@ class MarketMakingEnv(gym.Env):
         ep["I"] += I
         ep["abs_dW"] += abs(S + I)
         ep["steps_two_sided"] += two_sided
+        submitted = getattr(self.entrant, "last_quote", None)  # learned controller only
+        if submitted is not None:
+            ep["steps_submitted_two_sided"] += None not in submitted
         if two_sided:
             ep["spreads"].append(quotes[2] - quotes[0])
         ep["q_path"].append(led.q)
@@ -257,7 +261,14 @@ class MarketMakingEnv(gym.Env):
             "maker_fills": led.maker_fills,
             "self_trade_volume": led.self_trade_volume,
             "abs_dW": ep["abs_dW"],
-            "two_sided_frac": ep["steps_two_sided"] / max(1, self.k),
+            "two_sided_frac": ep["steps_two_sided"] / max(1, self.k),  # resting at step end
+            # both sides submitted at the step's quote update (§7 D1; ADR-024); None
+            # for the rule-based controller, which does not expose its decisions
+            "submitted_two_sided_frac": (
+                ep["steps_submitted_two_sided"] / max(1, self.k)
+                if hasattr(self.entrant, "last_quote")
+                else None
+            ),
             "median_spread": float(np.median(spreads)) if spreads else None,
             "final_q": led.q,
             "q_path": list(ep["q_path"]),

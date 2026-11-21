@@ -178,7 +178,15 @@ def detectors(
     taker = sum(r["taker_volume"] for r in cand)
     out = {
         "G1 fill rate vs rule": (mean(cand, "maker_fills"), 0.25 * mean(rule, "maker_fills"), ">="),
-        "G2 two-sided steps": (mean(cand, "two_sided_frac"), 0.99, ">="),
+        # ADR-024: quotes submitted per step, as §7 D1 defines it; the end-of-step
+        # resting measure is reported below as a secondary number, not judged.
+        "G2 two-sided steps": (
+            mean(cand, "submitted_two_sided_frac")
+            if all(r.get("submitted_two_sided_frac") is not None for r in cand)
+            else mean(cand, "two_sided_frac"),
+            0.99,
+            ">=",
+        ),
         "G3 median spread vs rule": (
             float(np.median(spreads_c)) if spreads_c else math.inf,
             2 * float(np.median(spreads_r)),
@@ -196,6 +204,12 @@ def detectors(
     res = {
         k: {"value": v, "threshold": t, "passed": v >= t if op == ">=" else v <= t}
         for k, (v, t, op) in out.items()
+    }
+    res["G2 secondary: resting both sides at step end"] = {
+        "value": mean(cand, "two_sided_frac"),
+        "threshold": None,
+        "passed": None,
+        "note": "reported, not judged (ADR-024): a side filled during the step counts as a gap",
     }
     res["G8 no forgetting vs Stage-1 population"] = {
         "value": None,
@@ -237,17 +251,19 @@ ABLATIONS: dict[str, tuple[EnvConfig, tuple]] = {
 }
 
 
-def ablation_episodes(which: str):
+def ablation_episodes(which: str, held_out=None):
+    held_out = HELD_OUT if held_out is None else held_out
     if which == "held_out_2":
         return HELD_OUT_2
     if which.startswith("latency:"):
         scale = float(which.split(":")[1])
-        return tuple(dataclasses.replace(e, latency_scale=scale) for e in HELD_OUT)
-    return HELD_OUT
+        return tuple(dataclasses.replace(e, latency_scale=scale) for e in held_out)
+    return held_out
 
 
 def ablations(spec: PolicySpec, base_mean: float, workers: int | None = None) -> dict:
-    """Collapse = mean P&L below half of the main held-out mean (§8.3)."""
+    """The original rule (§8.3): collapse = mean P&L below half of the main held-out
+    mean. Kept to reproduce the first gate run; superseded by ablations_vs_baselines."""
     out = {}
     for name, (cfg, which) in ABLATIONS.items():
         rows = run_eval(spec, ablation_episodes(which), cfg, workers)
@@ -256,6 +272,43 @@ def ablations(spec: PolicySpec, base_mean: float, workers: int | None = None) ->
             "mean_pnl": m,
             "vs_main": m / base_mean if base_mean else None,
             "collapsed": base_mean > 0 and m < 0.5 * base_mean,
+        }
+    return out
+
+
+def lead_collapse(cand: dict, cand_main: dict, base: dict[str, dict], base_main: dict) -> dict:
+    """ADR-024. An ablation collapses the policy if, under that same ablation,
+    (a) it no longer beats every baseline on risk-adjusted P&L, or
+    (b) its mean P&L falls below half its main held-out mean while no baseline loses
+        as much as half of its own main |mean| (the ablation hurt only the policy).
+    Arguments are describe() outputs; base and base_main are keyed by baseline name."""
+    lost_lead = not all(cand["risk_adjusted"] > b["risk_adjusted"] for b in base.values())
+    below_half = cand_main["mean_pnl"] > 0 and cand["mean_pnl"] < 0.5 * cand_main["mean_pnl"]
+    baselines_held = all(
+        base[k]["mean_pnl"] > base_main[k]["mean_pnl"] - 0.5 * abs(base_main[k]["mean_pnl"])
+        for k in base
+    )
+    alone = below_half and baselines_held
+    return {"lost_lead": lost_lead, "below_half": below_half, "collapsed": lost_lead or alone}
+
+
+def ablations_vs_baselines(
+    specs: dict[str, PolicySpec], main: dict[str, dict], held_out, workers: int | None = None
+) -> dict:
+    """Every ablation for the candidate ("learned") and each baseline in specs, on the
+    same episodes. main: describe() of each on the main held-out set."""
+    out = {}
+    for name, (cfg, which) in ABLATIONS.items():
+        eps = ablation_episodes(which, held_out)
+        table = {k: describe(run_eval(sp, eps, cfg, workers)) for k, sp in specs.items()}
+        base = {k: v for k, v in table.items() if k != "learned"}
+        base_main = {k: main[k] for k in base}
+        verdict = lead_collapse(table["learned"], main["learned"], base, base_main)
+        m0 = main["learned"]["mean_pnl"]
+        out[name] = {
+            "table": table,
+            "vs_main": table["learned"]["mean_pnl"] / m0 if m0 else None,
+            **verdict,
         }
     return out
 

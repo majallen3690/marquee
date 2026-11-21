@@ -90,3 +90,15 @@ def test_ablation_switches_build() -> None:
     ):
         _, infos = play(cfg, [(2, 2, 2)] * cfg.episode_steps)
         assert "episode" in infos[-1]
+
+
+def test_submitted_two_sided_counts_decisions_not_resting_quotes() -> None:
+    """ADR-024: the learned maker must submit both sides every step away from its
+    limit; the rule-based controller does not expose decisions and reports None."""
+    _, infos = play(SHORT, [(0, 0, 2)] * SHORT.episode_steps)
+    ep = infos[-1]["episode"]
+    assert ep["submitted_two_sided_frac"] == 1.0 or abs(ep["final_q"]) >= 360 - 80
+    assert ep["submitted_two_sided_frac"] >= ep["two_sided_frac"]
+    rule = dataclasses.replace(SHORT, controller="rule")
+    _, infos = play(rule, [(0, 0, 0)] * rule.episode_steps)
+    assert infos[-1]["episode"]["submitted_two_sided_frac"] is None

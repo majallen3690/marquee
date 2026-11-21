@@ -1,13 +1,16 @@
 """The M7 gate report (RL_DESIGN §9, ADR-023): one command, one verdict.
 
     uv run --group train python -m marquee.rl.report --model models/m7-stage1.zip
+        --gate amended --held-out 3 --out docs/m7-results-heldout3.json
+
+--gate original --held-out 1 reproduces the first run (docs/m7-results.json, ADR-024).
 
 Steps, in order, nothing tuned on the held-out set:
 1. The best fixed quoting rule, chosen on TRAIN_EVAL (cached in docs/m7-fixed-grid.json).
 2. HELD_OUT for the candidate and every baseline (rule-based, best fixed, do-nothing,
    random); risk-adjusted P&L and paired sign tests.
 3. Detectors G1–G10 (G10 also plays the candidate on TRAIN_EVAL).
-4. Ablations A1–A6.
+4. Ablations A1–A6 (amended gate: baselines run under every ablation too).
 Writes docs/m7-results.json and prints the verdict.
 """
 
@@ -24,8 +27,10 @@ from marquee.rl.evaluate import (  # noqa: E402
     DO_NOTHING,
     FIXED_GRID,
     HELD_OUT,
+    HELD_OUT_3,
     TRAIN_EVAL,
     ablations,
+    ablations_vs_baselines,
     best_fixed,
     describe,
     detectors,
@@ -68,6 +73,8 @@ def main() -> None:
     ap.add_argument("--workers", type=int, default=12)
     ap.add_argument("--out", type=Path, default=REPO / "docs" / "m7-results.json")
     ap.add_argument("--grid-only", action="store_true")
+    ap.add_argument("--gate", choices=("original", "amended"), default="amended")
+    ap.add_argument("--held-out", type=int, choices=(1, 3), default=3)
     args = ap.parse_args()
 
     best, grid = fixed_grid(args.workers)
@@ -83,7 +90,8 @@ def main() -> None:
         "do-nothing": DO_NOTHING,
         "random": ("random", 0),
     }
-    rows = {name: run_eval(spec, HELD_OUT, workers=args.workers) for name, spec in specs.items()}
+    held_out = HELD_OUT_3 if args.held_out == 3 else HELD_OUT
+    rows = {name: run_eval(spec, held_out, workers=args.workers) for name, spec in specs.items()}
     table = {name: describe(r) for name, r in rows.items()}
     for name, d in table.items():
         print(f"{name:18s} {d}", flush=True)
@@ -91,7 +99,11 @@ def main() -> None:
     cand_train = run_eval(cand_spec, TRAIN_EVAL, workers=args.workers)
     det = detectors(rows["learned"], rows["rule-based maker"], cand_train)
     det_fixed = detectors(rows["best fixed rule"], rows["rule-based maker"])
-    abl = ablations(cand_spec, table["learned"]["mean_pnl"], workers=args.workers)
+    if args.gate == "original":
+        abl = ablations(cand_spec, table["learned"]["mean_pnl"], workers=args.workers)
+    else:
+        gate_specs = {k: specs[k] for k in ("learned", "rule-based maker", "best fixed rule")}
+        abl = ablations_vs_baselines(gate_specs, table, held_out, workers=args.workers)
 
     ra = {k: v["risk_adjusted"] for k, v in table.items()}
     beats_rule = ra["learned"] > ra["rule-based maker"]
@@ -107,6 +119,8 @@ def main() -> None:
     }
     result = {
         "model": str(args.model),
+        "gate": args.gate,
+        "held_out_set": f"HELD_OUT_{args.held_out}" if args.held_out != 1 else "HELD_OUT",
         "best_fixed_rule": best,
         "held_out": table,
         "paired_vs_rule": paired(rows["learned"], rows["rule-based maker"]),

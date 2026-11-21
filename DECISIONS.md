@@ -861,7 +861,7 @@ about 15 minutes.
 TRAIN_EVAL 40 from the training pool, VALIDATION 20 (checkpoint choice), HELD_OUT 40
 (the gate, never used for a choice), HELD_OUT_2 20 (ablation A2). Seeds are disjoint.
 
-## ADR-024: M7 first gate run failed as pre-registered; amendment proposed, not applied
+## ADR-024: M7 first gate run failed as pre-registered; gate amended, re-scored on HELD_OUT_3
 
 **Result.** `docs/M7_RESULTS.md`. The learned maker beats both baselines on held-out
 risk-adjusted P&L (1.95 against −0.66 rule-based and −0.04 best fixed rule) and
@@ -875,8 +875,24 @@ the market for every controller (the rule-based maker loses 3.6× more with an e
 momentum trader); the learned maker is the only profitable controller under A4 and its
 risk-adjusted P&L rises under A3.
 
-**Proposed amendment (needs the author's decision, as the M6 sign-off reserved).**
-G2 counts submitted quotes; an ablation collapses when the policy loses its lead over
-both baselines under that same ablation; re-score on a fresh, committed HELD_OUT_3.
-Nothing is changed in code until the author decides. Re-scoring the same episodes
-under amended criteria is rejected: it would be grading on our own curve.
+**Amendment, accepted by the author on 2026-11-21** (the M6 sign-off reserved this
+call). Fixed here, in code and tests, and committed before anything ran on HELD_OUT_3:
+
+1. **G2** is the share of steps on which the policy *submitted* both a bid and an ask
+   (`submitted_two_sided_frac`), threshold 99% unchanged. Resting both sides at step
+   end is still reported, as a secondary number that is not judged.
+2. **Ablation collapse** (`lead_collapse`). Under each ablation the candidate, the
+   rule-based maker and the best fixed rule are all played on the same episodes. The
+   policy collapses if (a) its risk-adjusted P&L no longer beats *both* baselines under
+   that ablation, or (b) its mean P&L falls below half its main held-out mean while
+   neither baseline loses as much as half of its own main |mean|, that is, the ablation
+   hurt only the policy. The plain ratio to the main run stays in the report.
+3. **Episodes.** Main set HELD_OUT_3 (40 episodes, seeds 5,000,001+), committed in
+   `4be9546` before any run on it. Ablations use HELD_OUT_3; A2 keeps HELD_OUT_2.
+   The best fixed rule stays the one chosen on TRAIN_EVAL (2, 2, 1). G1–G10 otherwise
+   unchanged.
+4. **One shot.** The model is unchanged (`models/m7-stage1.zip`). The HELD_OUT_3 result
+   stands, pass or fail; no further amendment of M7's gate after seeing it.
+
+Rejected: re-scoring HELD_OUT under the amended criteria. It would be grading on our
+own curve. The original run stays reproducible with `--gate original --held-out 1`.
