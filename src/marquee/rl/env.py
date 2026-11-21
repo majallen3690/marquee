@@ -73,6 +73,12 @@ class EnvConfig:
     momentum_delta: int = 0  # A4: −1 drops a momentum trader, +1 adds one
     mark: str = "excluded_mid"  # A5: "last_trade"
     size_scale: float = 1.0  # A6: 0.5 halves the seat's base quote size
+    # M8 (ADR-026): the scenario's perturbations. "none" ignores them (training, M7);
+    # "others" applies all but the seat's (the entrant decides for itself); "all" also
+    # applies the seat's to a rule-based entrant. record_mid keeps the public mid and
+    # the entrant's quoted spread per step.
+    lever: str = "none"
+    record_mid: bool = False
 
 
 class MarketMakingEnv(gym.Env):
@@ -84,6 +90,10 @@ class MarketMakingEnv(gym.Env):
             raise ValueError(f"unknown controller {self.cfg.controller!r}")
         if self.cfg.mark not in ("excluded_mid", "last_trade"):
             raise ValueError(f"unknown mark {self.cfg.mark!r}")
+        if self.cfg.lever not in ("none", "others", "all"):
+            raise ValueError(f"unknown lever {self.cfg.lever!r}")
+        if self.cfg.lever == "all" and self.cfg.controller == "learned":
+            raise ValueError("the learned maker takes no lever; use lever='others'")
         base, _ = load_scenario(self.cfg.scenario)
         self._base = base
         seat = next(a for a in base.agents if a.agent_id == self.cfg.seat)
@@ -150,6 +160,14 @@ class MarketMakingEnv(gym.Env):
         else:
             self.entrant = InventoryMarketMaker(ENTRANT_ID, **self._seat_params)
             self.kernel.register_agent(Window(self.entrant, start_ns=t0), self._seat_wake)
+        if self.cfg.lever != "none":
+            for pt in config.perturbations:
+                target = pt.agent_id
+                if target == self.cfg.seat:
+                    if self.cfg.lever != "all":
+                        continue
+                    target = ENTRANT_ID  # the retired maker's lever goes to its successor
+                self.kernel.schedule_perturbation(pt.t_ns, target, pt.param, pt.value)
 
     def reset(self, *, seed: int | None = None, options: dict | None = None):
         super().reset(seed=seed)
@@ -182,6 +200,8 @@ class MarketMakingEnv(gym.Env):
             "steps_submitted_two_sided": 0,
             "spreads": [],
             "q_path": [],
+            "mid_path": [],
+            "own_spread_path": [],
         }
         info = {
             "master_seed": master_seed,
@@ -232,6 +252,10 @@ class MarketMakingEnv(gym.Env):
         if two_sided:
             ep["spreads"].append(quotes[2] - quotes[0])
         ep["q_path"].append(led.q)
+        if self.cfg.record_mid:
+            bb, ba = self.engine.best_bid, self.engine.best_ask
+            ep["mid_path"].append((bb + ba) / 2 if bb is not None and ba is not None else None)
+            ep["own_spread_path"].append(quotes[2] - quotes[0] if two_sided else None)
         info = {"S": S, "I": I, "q": led.q, "mid": m, "two_sided": two_sided}
         if truncated:
             info["episode"] = self.summary(liq_cost)
@@ -273,6 +297,11 @@ class MarketMakingEnv(gym.Env):
             "final_q": led.q,
             "q_path": list(ep["q_path"]),
             "steps": self.k,
+            **(
+                {"mid_path": ep["mid_path"], "own_spread_path": ep["own_spread_path"]}
+                if self.cfg.record_mid
+                else {}
+            ),
         }
 
     # -- observation (§3) ----------------------------------------------------------

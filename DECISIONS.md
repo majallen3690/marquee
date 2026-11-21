@@ -929,3 +929,40 @@ so it barely registers. The author approved one retry with a reward change
 from Stage 0 tests the reward, not a patch). A drawdown or CVaR term (a new reward form
 is a bigger change than the failure calls for). Choosing on HELD_OUT_3 (it already
 judged M7).
+
+## ADR-026: M8 — does a learned maker soften or deepen the lever's effect?
+
+The question ADR-023 set for M8, fixed here with its harness (`marquee.rl.m8`,
+`scenarios/m8-lever.yaml`, `tests/test_m8.py`) before any run with a learned model.
+
+**Market.** `m8-lever.yaml` is the M7 gate population (`m7-makers`, CANCEL_RESTING) with
+the M5 lever added verbatim at t = 30 s, horizon 60 s. Maker 1 is always the rule-based
+maker and always takes the lever.
+
+**Arms.** Maker 2's seat is retired and taken over at the same entry time by:
+*rule, levered* (a rule-based successor that takes the lever: the M5 lever in this
+population), *rule, holds* (a rule-based successor that keeps its normal parameters),
+or *learned* (the learned maker, which decides for itself), plus the no-lever twins
+(rule, learned). Same seed and entry give an identical market until the lever (tested).
+
+**Seeds and timing.** 30 seeds 8,000,001-8,000,030, outside the training pool and every
+M7/M7b set. Entry step per seed drawn once (rng 18) in 12.0-24.0 s, so the lever lands
+at step 60-180 of the learned maker's episode. It never saw a perturbation in training,
+so it cannot have memorized one (D6; G9 does not apply).
+
+**Measure.** The committed crash gate's move (signed largest deviation of the public
+mid in the 5 s after the lever from the mid at the lever, 100 ms grid), and the same on
+executed prices. Also what the entrant does: its quoted spread before and after, how
+often it stays two-sided, its inventory, its volume in the window.
+
+**Primary comparison and its reading, fixed now.** *learned* against *rule, holds*:
+both successors are free of the lever, so the only difference is who sits in the seat.
+Per seed, is the learned arm's |move| smaller? Exact sign test, and the median paired
+ratio |learned| / |rule, holds| with a 95% bootstrap interval. **Softens** if p < 0.05,
+the learned move is smaller on more seeds, and the interval lies below 1; **deepens**
+if the mirror holds; otherwise **no detectable difference**. Reported alongside, not
+read as the answer: learned against *rule, levered*; each lever arm against its twin
+(including whether the lever amplifies at all in this population); executed prices.
+
+**Model.** Primary: the M7b model chosen under ADR-025, whatever its gate verdict,
+which is reported beside the result. Secondary: the M7 model (`models/m7-stage1.zip`).
