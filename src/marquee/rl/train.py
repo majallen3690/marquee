@@ -8,10 +8,10 @@ VALIDATION episodes (never the held-out gate set); the best by risk-adjusted P&L
 as best.zip. progress.jsonl records every evaluation and the training episode stats.
 --init starts from another run's model (the curriculum: Stage 0, then Stage 1).
 
-torch and SB3 are imported inside main(): environment worker processes re-import this
-module when they spawn, and sixteen copies of torch that they never use exhausted memory
-in the first Stage 1 run. Validation runs in this process, on the live model, for the
-same reason.
+torch and SB3 are imported inside main(), and environment processes run
+`marquee.rl.vec.worker`, which imports neither: copies of torch that the workers never
+use exhausted memory twice (the first Stage 1 run, the first M7b launch). Validation
+runs in this process, on the live model, for the same reason.
 """
 
 import os
@@ -27,7 +27,7 @@ from pathlib import Path  # noqa: E402
 
 import numpy as np  # noqa: E402
 
-from marquee.rl.env import EnvConfig, MarketMakingEnv  # noqa: E402
+from marquee.rl.env import EnvConfig  # noqa: E402
 from marquee.rl.evaluate import VALIDATION, describe, run_eval  # noqa: E402
 
 PPO_KWARGS = {
@@ -41,15 +41,6 @@ PPO_KWARGS = {
     "ent_coef": 0.01,
     "policy_kwargs": {"net_arch": {"pi": [64, 64], "vf": [64, 64]}},
 }
-
-
-def _make(cfg: EnvConfig, seed: int):
-    def thunk():
-        env = MarketMakingEnv(cfg)
-        env.reset(seed=seed)
-        return env
-
-    return thunk
 
 
 def _checkpointing(run: Path, every: int):
@@ -101,6 +92,42 @@ def _checkpointing(run: Path, every: int):
     return Checkpointing()
 
 
+def _lean_vec_env(cfgs_seeds):
+    """SubprocVecEnv whose processes never import SB3 or torch (see marquee.rl.vec)."""
+    import multiprocessing as mp
+
+    from stable_baselines3.common.vec_env import SubprocVecEnv
+    from stable_baselines3.common.vec_env.base_vec_env import VecEnv
+
+    from marquee.rl import vec
+
+    class LeanSubprocVecEnv(SubprocVecEnv):
+        def __init__(self, items) -> None:
+            self.waiting = False
+            self.closed = False
+            ctx = mp.get_context("spawn")
+            self.remotes, self.work_remotes = zip(*[ctx.Pipe() for _ in items], strict=True)
+            self.processes = []
+            for work_remote, remote, (cfg, seed) in zip(
+                self.work_remotes, self.remotes, items, strict=True
+            ):
+                proc = ctx.Process(
+                    target=vec.worker, args=(work_remote, remote, cfg, seed), daemon=True
+                )
+                proc.start()
+                self.processes.append(proc)
+                work_remote.close()
+            self.remotes[0].send(("get_spaces", None))
+            observation_space, action_space = self.remotes[0].recv()
+            VecEnv.__init__(self, len(items), observation_space, action_space)
+
+        def env_is_wrapped(self, wrapper_class, indices=None):
+            # no wrappers by construction; asking would send an SB3 class to the workers
+            return [False] * len(self._get_indices(indices))
+
+    return LeanSubprocVecEnv(cfgs_seeds)
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--run", type=Path, required=True)
@@ -119,7 +146,7 @@ def main() -> None:
 
     import torch
     from stable_baselines3 import PPO
-    from stable_baselines3.common.vec_env import SubprocVecEnv, VecMonitor
+    from stable_baselines3.common.vec_env import VecMonitor
 
     torch.set_num_threads(1)
     args.run.mkdir(parents=True, exist_ok=True)
@@ -137,9 +164,7 @@ def main() -> None:
     (args.run / "config.json").write_text(json.dumps(meta, indent=1), encoding="utf-8")
 
     base_seed = args.seed * 1000
-    venv = VecMonitor(
-        SubprocVecEnv([_make(cfg, base_seed + i) for i in range(args.n_envs)], start_method="spawn")
-    )
+    venv = VecMonitor(_lean_vec_env([(cfg, base_seed + i) for i in range(args.n_envs)]))
     latest = args.run / "latest.zip"
     if args.resume and latest.exists():
         model = PPO.load(latest, env=venv, device="cpu")
