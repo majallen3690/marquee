@@ -902,3 +902,30 @@ rule-based maker (RA 0.19 against −0.62) but not the best fixed rule (0.191 ag
 0.198), and G10 trips (0.56×). Every ablation passes the amended rule. The cause is one
 episode lost 59,753 to inventory carried near the limit into a move: missing tail-risk
 control, not a measurement artifact. M7 closes as failed; see `docs/M7_RESULTS.md`.
+
+## ADR-025: M7b — one reward change for tail risk, retrained, one shot on HELD_OUT_4
+
+**Why.** M7 failed (ADR-024) on rare large inventory losses: one HELD_OUT_3 episode lost
+59,753 holding 339 of 360 shares into a move. The inventory penalty γ(q/q_max)² at
+γ = 0.01 costs 0.01 per step at the limit, against typical per-step reward around 0.3,
+so it barely registers. The author approved one retry with a reward change
+(2026-11-21). Fixed here before any M7b training:
+
+1. **Reward.** Unchanged form, r = (S + I − η·max(0, I)) / base − γ·(q/q_max)², η = 0.5.
+   Only γ changes, to one of **{0.1, 0.3, 1.0}**, chosen on validation (below). No other
+   reward term, no new observation, no action-space change.
+2. **Training.** Three runs, one per γ, each initialised from the M7 Stage 0 model
+   (`runs/s0/latest.zip`) and trained 1.5M Stage-1 steps, PPO as M7 except learning
+   rate 1.5e-4 (M7 at 3e-4 became unstable after 2M). 8 environments each, seed 0.
+   Checkpoints every 100k.
+3. **Choice.** Every checkpoint of all three runs is played on VALIDATION (20) plus
+   VALIDATION_2 (40 new, seeds 6,000,001+): 60 episodes. The model is the checkpoint
+   with the highest risk-adjusted P&L on those 60. Nothing else picks it.
+4. **Gate.** ADR-024's amended gate, unchanged, on **HELD_OUT_4** (40 episodes, seeds
+   7,000,001+), committed with this ADR. The best fixed rule stays (2, 2, 1), chosen on
+   TRAIN_EVAL. One shot: the result stands, pass or fail; M7b is not retried.
+
+**Rejected.** Fine-tuning the M7 model (it learned to ignore inventory; a clean start
+from Stage 0 tests the reward, not a patch). A drawdown or CVaR term (a new reward form
+is a bigger change than the failure calls for). Choosing on HELD_OUT_3 (it already
+judged M7).

@@ -7,8 +7,10 @@ from marquee.rl.evaluate import (
     HELD_OUT,
     HELD_OUT_2,
     HELD_OUT_3,
+    HELD_OUT_4,
     TRAIN_EVAL,
     VALIDATION,
+    VALIDATION_2,
     detectors,
     inventory_half_life,
     lead_collapse,
@@ -37,8 +39,8 @@ def row(pnl=100.0, q_path=(0, 10, 5, 2, 1, 0), **kw) -> dict:
 
 
 def test_episode_sets_are_fixed_and_disjoint() -> None:
-    sets = [TRAIN_EVAL, VALIDATION, HELD_OUT, HELD_OUT_2, HELD_OUT_3]
-    assert [len(s) for s in sets] == [40, 20, 40, 20, 40]
+    sets = [TRAIN_EVAL, VALIDATION, HELD_OUT, HELD_OUT_2, HELD_OUT_3, VALIDATION_2, HELD_OUT_4]
+    assert [len(s) for s in sets] == [40, 20, 40, 20, 40, 40, 40]
     seeds = [{e.master_seed for e in s} for s in sets]
     for i in range(len(sets)):
         for j in range(i + 1, len(sets)):
