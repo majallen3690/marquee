@@ -25,8 +25,11 @@ and a torch-free numpy actor for evaluation (`export_actor`, identical actions, 
 both were needed to train and score on a 16 GB machine. Long runs must be launched
 detached from the Claude session (they were killed twice when it ended).
 
-**Next (the author's call):** push `feature/m7-rl` (M7, M7b, M8) to the public repo;
-update README and NOTE with the M8 result; LIMITATIONS.md.
+**Shipped (2026-11-22):** README headline and chart (`docs/m8-softens.svg`, from
+`marquee.rl.m8_plot`), NOTE §10, and `LIMITATIONS.md`; `feature/m7-rl` fast-forwarded
+into `main` and pushed.
+
+**Next:** no further milestones planned. The roadmap (M0–M8) is done.
 
 ## Previous milestone: M7 — CLOSED, gate FAILED (2026-11-21)
 

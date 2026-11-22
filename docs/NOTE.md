@@ -27,6 +27,12 @@ deepest fall of the 30 seeds and was chosen for the demo. The committed crash te
 alone cannot show that the lever caused it, because the twin passes the test's ratio
 too. This note reports the controlled result and what it does and does not support.
 
+**Phase 2 (§10).** With a learned market maker in one of the two seats, the lever stops
+moving the price: the move is about a seventh of that with a rule-based maker that keeps
+its quotes (29 of 30 seeds), because the learned maker keeps quoting close to the price.
+Much of that is a tight learned quoter against a weak rule-based one, and the learned
+model did not pass its own pre-registered quality gate.
+
 ## 2. The system
 
 - **Matching engine.** Price-time priority limit order book, property-tested against a
@@ -181,10 +187,63 @@ Raw numbers: `docs/seed-sweep.json` (with and without the lever),
 (the lever taken apart and dosed). Decisions: ADR-020, ADR-021 and ADR-022 in
 `DECISIONS.md`.
 
-## 10. Next
+## 10. Phase 2: a learned maker in the seat
 
-The natural Phase 2 question follows directly: replace one rule-based maker with a
-learned one and ask whether it **softens or deepens** the lever's effect, measured with
-the same paired, multi-seed design. §6 sharpens it: the interesting control a learned
-maker has is *where* it quotes under stress, not how much. That is a proposed amendment
-to the Phase 2 design (`RL_DESIGN.md`), pending the author's sign-off.
+The question this note ended on, whether a learned maker **softens or deepens** the
+lever's effect, was asked with the same paired, multi-seed design. The question, the
+measure and how each outcome would be read were committed before the run (ADR-026).
+
+**Setup.** A PPO market maker (2×64 policy; it chooses its bid offset, ask offset and
+quote size every 100 ms) was trained to take over maker 2's seat in a population of the
+same kind as §2. In `scenarios/m8-lever.yaml`, maker 1 is always rule-based and always
+takes the §3 lever at 30 s. Before the lever, maker 2's seat passes to one of three
+successors on the same seed and entry time: a rule-based maker that also takes the lever,
+a rule-based maker that keeps its parameters, or the learned maker; each has a no-lever
+twin. Thirty fresh seeds, outside every training and evaluation set; the takeover time
+varies by seed (12–24 s), so the lever lands at a different step of the learned maker's
+episode every time. It never saw a perturbation in training. The measure is the crash
+gate's: the largest move of the mid in the 5 s after the lever.
+
+**Result: softens.** With the learned maker in the seat, the move is smaller than with
+the rule-based maker that keeps its parameters on 29 of 30 seeds (sign test p < 10⁻⁷),
+median ratio 0.15 (95% bootstrap CI 0.10–0.21); on executed prices, 30 of 30. The lever
+then has no detectable effect: median 12.8 ticks against 12.5 for its no-lever twin
+(larger on 16 of 30, p = 0.86). With a rule-based maker that takes the lever, the move is
+187 ticks, 4.0× its twin.
+
+**Mechanism, and how it fits §6.** When maker 1 steps back, the learned maker widens by
+one tick (5 → 6, median) and stays two-sided 100% of the window. The rule-based maker
+that "holds" its parameters still widens from 16.5 to 27.5 ticks, because it quotes
+relative to the best price, which maker 1 has just moved. So the result is §6 again from
+the other side: what matters under stress is where the remaining liquidity is quoted.
+The learned maker is also paid to stay: its P&L is higher with the lever than without
+(+5,289 against +3,835 mean).
+
+**What it does not show.**
+- The learned maker is a tighter quoter all the time, not only under stress: with no
+  lever, its market moves 12.5 ticks against 55.0 for the rule-based successor. Much of
+  the softening is that gap.
+- It is exempt from the lever by construction. The lever models risk appetite
+  collapsing; the learned maker has no capital limit or risk desk, and the simulator
+  does not charge it for the risk it carries through the crash.
+- The model did not pass its own quality gate (ADR-023/024/025). The first model beat the
+  rule-based maker but tied the best fixed quoting rule and had one catastrophic
+  held-out episode; a retrained model with a stronger inventory penalty fixed the tails
+  and beat both baselines, but tripped one ablation clause. Both were reported as
+  failures. Both give the same M8 answer (the first: 30 of 30 seeds, ratio 0.12).
+- One population, one lever, one seat. Details: `docs/M7_RESULTS.md`,
+  `docs/M7B_RESULTS.md`, `docs/M8_RESULTS.md`, and `LIMITATIONS.md`.
+
+Reproduce (needs the training dependencies, `uv sync --group train`):
+
+```
+uv run --group train python -m marquee.rl.m8 --model models/m7b.zip --out docs/m8-results.json
+uv run python -m marquee.rl.m8_plot docs/m8-results.json docs/m8-softens.svg
+```
+
+## 11. Next
+
+A clean test of a crash-specific skill would compare the learned maker with a rule-based
+maker that quotes as tightly in calm markets, so that only behaviour under stress
+differs, and would charge it for the inventory it carries through the crash. Neither is
+planned.

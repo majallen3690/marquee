@@ -33,6 +33,24 @@ nothing on their own and weaken the effect.
 
 ![Median 5 s move against how far the makers quote from the best price: widening quotes alone rises from 27 to 152 ticks; the full lever levels off near 65](docs/lever-dose.svg)
 
+**Put a learned market maker in one seat and the lever stops moving the price.** A
+reinforcement-learning maker (PPO) was trained to take over maker 2's seat; then maker 1
+took the lever on 30 fresh seeds. With the learned maker in the seat the price moves
+about a seventh as far as with a rule-based maker that keeps its quotes (median ratio
+0.15, 95% CI 0.10–0.21; smaller on 29 of 30 seeds, sign test p < 10⁻⁷), and no further
+than with no lever at all (12.8 ticks against 12.5). It keeps quoting tight and on both
+sides while maker 1 steps back, which is what the lever study predicts: distance moves
+the price. The question and how to read the answer were committed before the run
+(ADR-026).
+
+![Median 5 s move with each kind of maker in seat 2: rule-based 55 with no lever, 187 when it takes the lever, 95 when it holds its quotes; learned 12.5 with no lever and 12.8 with it](docs/m8-softens.svg)
+
+Read it with its caveats. The learned maker is a tighter quoter than the rule-based one
+all the time, not only in the crash, and it has none of the risk limits the lever
+collapses. Nor did it pass its own pre-registered quality gate: the first model failed on
+tail losses, the retrained one on one ablation clause. Both models give the same M8
+answer. See [docs/M8_RESULTS.md](docs/M8_RESULTS.md) and [LIMITATIONS.md](LIMITATIONS.md).
+
 See the [technical note](docs/NOTE.md), [docs/LEVER_STUDY.md](docs/LEVER_STUDY.md) and
 [docs/SEED_SWEEP.md](docs/SEED_SWEEP.md).
 
@@ -69,12 +87,19 @@ agent (commits say so). The claims are held by tests rather than by prose:
 | The lever amplifies in general, and how much | `tests/test_seed_sweep.py` (30 seeds; `pytest -m slow`) |
 | Quoting distance, not depth, carries the effect | `tests/test_lever_study.py` (30 seeds; `pytest -m slow`) |
 | The number on screen is the number the tests assert | `tests/test_bridge.py::test_ui_mid_series_is_the_gate_series` |
+| The RL gate's judges trip on what they claim to catch | `tests/test_rl_evaluate.py` (each detector, each ablation rule, the committed episode sets) |
+| The fast evaluation policy plays exactly as the trained one | `tests/test_rl_evaluate.py::test_numpy_actor_plays_exactly_as_sb3` |
+| The M8 lever reaches only the makers it should | `tests/test_m8.py` |
 
 ## Status
 
-Phase 1 (engine, kernel, agents, calibration, live instrument) is complete.
-Phase 2, a reinforcement-learning market maker, has a written design
-([RL_DESIGN.md](RL_DESIGN.md)); training has not started. Milestone history is in
+Phase 1 (engine, kernel, agents, calibration, live instrument) is complete. Phase 2 is
+complete: a learned market maker was trained against a gate written before training
+([RL_DESIGN.md](RL_DESIGN.md), ADR-023). It failed that gate twice, on different
+requirements, and both failures are reported as they happened
+([docs/M7_RESULTS.md](docs/M7_RESULTS.md), [docs/M7B_RESULTS.md](docs/M7B_RESULTS.md)).
+The Phase 2 question, whether a learned maker softens or deepens the lever, is answered
+in [docs/M8_RESULTS.md](docs/M8_RESULTS.md). Milestone history is in
 [PROGRESS.md](PROGRESS.md).
 
 ## Quickstart
@@ -105,6 +130,8 @@ src/marquee/engine/     LOB + matching engine (pure, deterministic, no I/O)
 src/marquee/sim/        event-driven kernel, agent API, recorder
 src/marquee/agents/     rule-based agent implementations (M3)
 src/marquee/analysis/   run analysis and stylized-facts calibration (M3/M4)
+src/marquee/rl/         RL market maker: environment, training, gate report, M8 (M6-M8)
+models/                 the two trained models (M7, M7b)
 tests/                  pytest + hypothesis property tests
 scenarios/              committed, seeded scenario configs
 viz/                    Next.js front end (M5)
