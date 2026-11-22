@@ -14,7 +14,13 @@ import json  # noqa: E402
 import shutil  # noqa: E402
 from pathlib import Path  # noqa: E402
 
-from marquee.rl.evaluate import VALIDATION, VALIDATION_2, describe, run_eval  # noqa: E402
+from marquee.rl.evaluate import (  # noqa: E402
+    VALIDATION,
+    VALIDATION_2,
+    describe,
+    export_actor,
+    run_eval,
+)
 
 REPO = Path(__file__).resolve().parents[3]
 CHOICE_SET = VALIDATION + VALIDATION_2
@@ -40,7 +46,8 @@ def main() -> None:
         for ckpt in sorted(run.glob("ckpt_*.zip")):
             if str(ckpt) in table:
                 continue
-            d = describe(run_eval(("ppo", str(ckpt)), CHOICE_SET, workers=args.workers))
+            spec = ("np", export_actor(str(ckpt)))  # torch-free in workers, same actions
+            d = describe(run_eval(spec, CHOICE_SET, workers=args.workers))
             table[str(ckpt)] = d
             with open(partial, "a", encoding="utf-8") as f:
                 f.write(json.dumps({"ckpt": str(ckpt), "describe": d}) + "\n")

@@ -25,6 +25,7 @@ import math
 import os
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
+from pathlib import Path
 
 import numpy as np
 
@@ -66,9 +67,56 @@ HELD_OUT_4 = _episodes(40, 7_000_001, 17)
 # --- policies (picklable specs, built inside the worker) ---------------------
 
 type PolicySpec = tuple  # ("rule",) | ("fixed", (b, a, s)) | ("random", seed) | ("ppo", path)
-# | ("model", live_model) — in-process only, never sent to a worker
+# | ("np", actor_npz) — the same policy without torch | ("model", live_model) in-process only
 
 _PPO_CACHE: dict[str, object] = {}
+_NP_CACHE: dict[str, tuple] = {}
+
+# The PPO actor (MlpPolicy, shared FlattenExtractor, 2x64 tanh, MultiDiscrete [9, 9, 3]).
+_ACTOR_KEYS = (
+    "mlp_extractor.policy_net.0.weight",
+    "mlp_extractor.policy_net.0.bias",
+    "mlp_extractor.policy_net.2.weight",
+    "mlp_extractor.policy_net.2.bias",
+    "action_net.weight",
+    "action_net.bias",
+)
+
+
+def export_actor(path: str) -> str:
+    """Write the actor of an SB3 PPO zip as .npz beside it and return its path. Called
+    in a parent process; workers then play the policy with numpy alone, without the
+    several hundred MB of torch per process that exhausted memory (ADR-025 notes).
+    Deterministic actions are identical to SB3's (tests/test_rl_evaluate.py)."""
+    zip_path = Path(path)
+    out = zip_path.with_suffix(".actor.npz")
+    if out.exists() and out.stat().st_mtime >= zip_path.stat().st_mtime:
+        return str(out)
+    from stable_baselines3 import PPO
+
+    sd = PPO.load(path, device="cpu").policy.state_dict()
+    np.savez(out, *[sd[k].numpy() for k in _ACTOR_KEYS])
+    return str(out)
+
+
+def _np_action(path: str, obs: np.ndarray) -> np.ndarray:
+    w = _NP_CACHE.get(path)
+    if w is None:
+        with np.load(path) as z:
+            w = tuple(z[f"arr_{i}"] for i in range(len(_ACTOR_KEYS)))
+        _NP_CACHE[path] = w
+    w0, b0, w1, b1, wa, ba = w
+    h = np.tanh(w0 @ obs.astype(np.float32) + b0)
+    h = np.tanh(w1 @ h + b1)
+    logits = wa @ h + ba
+    n0, n1 = len(OFFSETS), len(OFFSETS)
+    return np.array(
+        [
+            int(np.argmax(logits[:n0])),
+            int(np.argmax(logits[n0 : n0 + n1])),
+            int(np.argmax(logits[n0 + n1 :])),
+        ]
+    )
 
 
 def _act(spec: PolicySpec, obs: np.ndarray, rng: np.random.Generator) -> np.ndarray:
@@ -77,6 +125,8 @@ def _act(spec: PolicySpec, obs: np.ndarray, rng: np.random.Generator) -> np.ndar
         return np.asarray(spec[1])
     if kind == "random":
         return np.array([rng.integers(len(OFFSETS)), rng.integers(len(OFFSETS)), rng.integers(3)])
+    if kind == "np":
+        return _np_action(spec[1], obs)
     if kind == "model":  # a live SB3 model, in-process only (validation during training)
         action, _ = spec[1].predict(obs, deterministic=True)
         return action

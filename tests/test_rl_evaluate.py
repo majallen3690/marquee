@@ -108,3 +108,31 @@ def test_ablation_collapse_is_losing_the_lead_or_being_hurt_alone() -> None:
     assert not v["lost_lead"] and v["collapsed"]
     # a small dip with the lead kept: fine
     assert not lead_collapse(d(90.0, 1.8), main, base_main, base_main)["collapsed"]
+
+
+def test_numpy_actor_plays_exactly_as_sb3() -> None:
+    """The torch-free policy used by evaluation workers must choose SB3's actions:
+    on random observations, and over whole episodes (identical results)."""
+    from pathlib import Path
+
+    import numpy as np
+    import pytest
+
+    sb3 = pytest.importorskip("stable_baselines3")
+    from marquee.rl.evaluate import _act, export_actor, run_eval
+
+    models = [m for m in (Path("models/m7-stage1.zip"),) if m.exists()]
+    if not models:
+        pytest.skip("no trained model in this checkout")
+    for model in models:
+        npz = export_actor(str(model))
+        ppo = sb3.PPO.load(str(model), device="cpu")
+        rng = np.random.default_rng(0)
+        obs = rng.uniform(-1, 1, size=(5_000, 33)).astype(np.float32)
+        torch_actions, _ = ppo.predict(obs, deterministic=True)
+        np_actions = np.array([_act(("np", npz), o, rng) for o in obs])
+        assert (torch_actions == np_actions).all()
+        eps = HELD_OUT[:3]
+        a = run_eval(("ppo", str(model)), eps, workers=1)
+        b = run_eval(("np", npz), eps, workers=1)
+        assert a == b

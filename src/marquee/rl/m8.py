@@ -32,7 +32,7 @@ import numpy as np  # noqa: E402
 
 from marquee.analysis.lever_study import bootstrap_median_ci, sign_test_p, trade_moves  # noqa: E402
 from marquee.rl.env import ENTRANT_ID, STEP_NS, EnvConfig, MarketMakingEnv  # noqa: E402
-from marquee.rl.evaluate import _act  # noqa: E402
+from marquee.rl.evaluate import _act, export_actor  # noqa: E402
 
 REPO = Path(__file__).resolve().parents[3]
 M8_SCENARIO = REPO / "scenarios" / "m8-lever.yaml"
@@ -72,7 +72,7 @@ def run_arm(seed: int, start_step: int, arm: str, model: str | None) -> dict:
     )
     env = MarketMakingEnv(cfg)
     obs, _ = env.reset(options={"master_seed": seed, "start_step": start_step})
-    spec = ("rule",) if controller == "rule" else ("ppo", model)
+    spec = ("rule",) if controller == "rule" else ("np", model)  # model: an actor .npz
     rng = np.random.default_rng(seed)
     while True:
         obs, _r, _t, trunc, info = env.step(_act(spec, obs, rng))
@@ -195,7 +195,7 @@ def main() -> None:
     ap.add_argument("--workers", type=int, default=6)
     ap.add_argument("--out", type=Path, default=REPO / "docs" / "m8-results.json")
     args = ap.parse_args()
-    rows = run_all(args.model, args.workers)
+    rows = run_all(export_actor(args.model), args.workers)
     out = {"model": args.model, "summary": summarize(rows), "runs": rows}
     args.out.write_text(json.dumps(out, indent=1), encoding="utf-8")
     print(json.dumps(out["summary"], indent=1))

@@ -35,6 +35,7 @@ from marquee.rl.evaluate import (  # noqa: E402
     best_fixed,
     describe,
     detectors,
+    export_actor,
     paired,
     run_eval,
 )
@@ -83,7 +84,7 @@ def main() -> None:
     if args.grid_only:
         return
 
-    cand_spec = ("ppo", str(args.model))
+    cand_spec = ("np", export_actor(str(args.model)))  # same actions as SB3, no torch
     specs = {
         "learned": cand_spec,
         "rule-based maker": ("rule",),
