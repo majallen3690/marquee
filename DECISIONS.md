@@ -966,3 +966,19 @@ read as the answer: learned against *rule, levered*; each lever arm against its 
 
 **Model.** Primary: the M7b model chosen under ADR-025, whatever its gate verdict,
 which is reported beside the result. Secondary: the M7 model (`models/m7-stage1.zip`).
+
+**ADR-025 outcome (2026-11-22): failed, final.** Chosen model γ = 1.0 at 1.5M steps (RA
+2.26 on 60 validation episodes). On HELD_OUT_4 it beats both baselines (RA 1.86 against
+−0.52 and −0.16), passes every detector (G10 1.18×), and keeps its lead under every
+ablation, but A3 trips clause (b) of ADR-024: its mean falls to 0.42× while both
+loss-making baselines improve. On inspection the whole market trades half as much under
+REJECT_TAKER and the policy's risk-adjusted P&L is unchanged; clause (b) misreads a
+quieter market when baselines lose money. Found after the result, so reported, not used.
+The tail risk that failed M7 is fixed (worst episode −2,848). `docs/M7B_RESULTS.md`.
+
+**ADR-026 outcome (2026-11-22): softens.** Learned against *rule, holds*: smaller move on
+29 of 30 seeds (p < 10⁻⁷), median ratio 0.15 (0.10-0.21); 30 of 30 on executed prices.
+With the learned maker in the seat the lever has no detectable effect (12.8 against 12.5
+ticks). The M7 model gives the same answer. Caveats in `docs/M8_RESULTS.md`: much of the
+gap is a tight learned quoter against a weak rule-based one, and the learned maker is
+exempt from the risk-appetite collapse the lever models.

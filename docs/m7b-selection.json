@@ -1,0 +1,411 @@
+{
+ "chosen": "runs\\m7b-g1.0\\ckpt_001500000.zip",
+ "episodes": 60,
+ "table": {
+  "runs\\m7b-g0.1\\ckpt_000100000.zip": {
+   "n": 60,
+   "mean_pnl": -34151.7,
+   "std_pnl": 34971.95851802471,
+   "risk_adjusted": -0.9765452507441942,
+   "spread_capture": -481.69166666666666,
+   "inventory_pnl": -33670.00833333333,
+   "maker_volume": 1104.9166666666667
+  },
+  "runs\\m7b-g0.1\\ckpt_000200000.zip": {
+   "n": 60,
+   "mean_pnl": -40071.45,
+   "std_pnl": 38088.68904989814,
+   "risk_adjusted": -1.0520564240870653,
+   "spread_capture": -2877.775,
+   "inventory_pnl": -37193.675,
+   "maker_volume": 1221.7333333333333
+  },
+  "runs\\m7b-g0.1\\ckpt_000300000.zip": {
+   "n": 60,
+   "mean_pnl": -33263.75,
+   "std_pnl": 36020.61533726796,
+   "risk_adjusted": -0.9234642353703594,
+   "spread_capture": -2626.5666666666666,
+   "inventory_pnl": -30637.183333333334,
+   "maker_volume": 1053.5
+  },
+  "runs\\m7b-g0.1\\ckpt_000400000.zip": {
+   "n": 60,
+   "mean_pnl": -36127.166666666664,
+   "std_pnl": 35227.50909622044,
+   "risk_adjusted": -1.025538495156978,
+   "spread_capture": -1462.8416666666667,
+   "inventory_pnl": -34664.325,
+   "maker_volume": 1353.35
+  },
+  "runs\\m7b-g0.1\\ckpt_000500000.zip": {
+   "n": 60,
+   "mean_pnl": -45470.05,
+   "std_pnl": 41185.99768163151,
+   "risk_adjusted": -1.1040172038925533,
+   "spread_capture": -1479.825,
+   "inventory_pnl": -43990.225,
+   "maker_volume": 1133.3333333333333
+  },
+  "runs\\m7b-g0.1\\ckpt_000600000.zip": {
+   "n": 60,
+   "mean_pnl": -46549.333333333336,
+   "std_pnl": 59458.59345844382,
+   "risk_adjusted": -0.7828865539153245,
+   "spread_capture": -4181.066666666667,
+   "inventory_pnl": -42368.26666666667,
+   "maker_volume": 992.6166666666667
+  },
+  "runs\\m7b-g0.1\\ckpt_000700000.zip": {
+   "n": 60,
+   "mean_pnl": -33407.75,
+   "std_pnl": 42811.388790329846,
+   "risk_adjusted": -0.7803472614171788,
+   "spread_capture": 747.525,
+   "inventory_pnl": -34155.275,
+   "maker_volume": 1851.1
+  },
+  "runs\\m7b-g0.1\\ckpt_000800000.zip": {
+   "n": 60,
+   "mean_pnl": -28501.283333333333,
+   "std_pnl": 36398.60237542732,
+   "risk_adjusted": -0.7830323549064219,
+   "spread_capture": -3736.9333333333334,
+   "inventory_pnl": -24764.35,
+   "maker_volume": 1488.4166666666667
+  },
+  "runs\\m7b-g0.1\\ckpt_000900000.zip": {
+   "n": 60,
+   "mean_pnl": -2111.9,
+   "std_pnl": 15265.734247831766,
+   "risk_adjusted": -0.13834251046915474,
+   "spread_capture": 510.39166666666665,
+   "inventory_pnl": -2622.2916666666665,
+   "maker_volume": 3147.8333333333335
+  },
+  "runs\\m7b-g0.1\\ckpt_001000000.zip": {
+   "n": 60,
+   "mean_pnl": -247.05,
+   "std_pnl": 3570.6133709651704,
+   "risk_adjusted": -0.06918979299436726,
+   "spread_capture": 2314.15,
+   "inventory_pnl": -2561.2,
+   "maker_volume": 3385.65
+  },
+  "runs\\m7b-g0.1\\ckpt_001100000.zip": {
+   "n": 60,
+   "mean_pnl": -369.9,
+   "std_pnl": 4177.216621351461,
+   "risk_adjusted": -0.08855178783625678,
+   "spread_capture": 2255.508333333333,
+   "inventory_pnl": -2625.4083333333333,
+   "maker_volume": 3380.15
+  },
+  "runs\\m7b-g0.1\\ckpt_001200000.zip": {
+   "n": 60,
+   "mean_pnl": 1182.75,
+   "std_pnl": 1781.9397032257302,
+   "risk_adjusted": 0.6637429975093682,
+   "spread_capture": 2989.858333333333,
+   "inventory_pnl": -1807.1083333333333,
+   "maker_volume": 3270.0333333333333
+  },
+  "runs\\m7b-g0.1\\ckpt_001300000.zip": {
+   "n": 60,
+   "mean_pnl": 925.9666666666667,
+   "std_pnl": 957.398735038389,
+   "risk_adjusted": 0.9671693023800978,
+   "spread_capture": 2375.6583333333333,
+   "inventory_pnl": -1449.6916666666666,
+   "maker_volume": 3383.35
+  },
+  "runs\\m7b-g0.1\\ckpt_001400000.zip": {
+   "n": 60,
+   "mean_pnl": 1472.0333333333333,
+   "std_pnl": 939.8715737489047,
+   "risk_adjusted": 1.5662068887366951,
+   "spread_capture": 3014.025,
+   "inventory_pnl": -1541.9916666666666,
+   "maker_volume": 3231.9666666666667
+  },
+  "runs\\m7b-g0.1\\ckpt_001500000.zip": {
+   "n": 60,
+   "mean_pnl": 2125.5666666666666,
+   "std_pnl": 1416.3178012452904,
+   "risk_adjusted": 1.5007695764310613,
+   "spread_capture": 3560.608333333333,
+   "inventory_pnl": -1435.0416666666667,
+   "maker_volume": 3093.7
+  },
+  "runs\\m7b-g0.3\\ckpt_000100000.zip": {
+   "n": 60,
+   "mean_pnl": -30219.983333333334,
+   "std_pnl": 31280.206868649064,
+   "risk_adjusted": -0.966105609858407,
+   "spread_capture": -4785.391666666666,
+   "inventory_pnl": -25434.591666666667,
+   "maker_volume": 963.1666666666666
+  },
+  "runs\\m7b-g0.3\\ckpt_000200000.zip": {
+   "n": 60,
+   "mean_pnl": -37987.76666666667,
+   "std_pnl": 37039.688301012444,
+   "risk_adjusted": -1.0255962835850407,
+   "spread_capture": -3889.266666666667,
+   "inventory_pnl": -34098.5,
+   "maker_volume": 924.3333333333334
+  },
+  "runs\\m7b-g0.3\\ckpt_000300000.zip": {
+   "n": 60,
+   "mean_pnl": -35257.5,
+   "std_pnl": 32791.42122645567,
+   "risk_adjusted": -1.0752049981766185,
+   "spread_capture": -3416.991666666667,
+   "inventory_pnl": -31840.508333333335,
+   "maker_volume": 968.7833333333333
+  },
+  "runs\\m7b-g0.3\\ckpt_000400000.zip": {
+   "n": 60,
+   "mean_pnl": -34350.46666666667,
+   "std_pnl": 30665.903685743175,
+   "risk_adjusted": -1.1201517822100404,
+   "spread_capture": -1510.8916666666667,
+   "inventory_pnl": -32839.575,
+   "maker_volume": 1233.6
+  },
+  "runs\\m7b-g0.3\\ckpt_000500000.zip": {
+   "n": 60,
+   "mean_pnl": -35593.48333333333,
+   "std_pnl": 33263.06642126489,
+   "risk_adjusted": -1.0700601947684119,
+   "spread_capture": -1605.1083333333333,
+   "inventory_pnl": -33988.375,
+   "maker_volume": 1212.9666666666667
+  },
+  "runs\\m7b-g0.3\\ckpt_000600000.zip": {
+   "n": 60,
+   "mean_pnl": -164.16666666666666,
+   "std_pnl": 20241.773781864034,
+   "risk_adjusted": -0.00811029055238996,
+   "spread_capture": 2960.8166666666666,
+   "inventory_pnl": -3124.983333333333,
+   "maker_volume": 2692.0333333333333
+  },
+  "runs\\m7b-g0.3\\ckpt_000700000.zip": {
+   "n": 60,
+   "mean_pnl": -7041.866666666667,
+   "std_pnl": 27335.027572488394,
+   "risk_adjusted": -0.2576133002973087,
+   "spread_capture": 1464.0666666666666,
+   "inventory_pnl": -8505.933333333332,
+   "maker_volume": 2936.133333333333
+  },
+  "runs\\m7b-g0.3\\ckpt_000800000.zip": {
+   "n": 60,
+   "mean_pnl": -7408.716666666666,
+   "std_pnl": 24617.64087823785,
+   "risk_adjusted": -0.300951529162001,
+   "spread_capture": 686.4333333333333,
+   "inventory_pnl": -8095.15,
+   "maker_volume": 3340.3333333333335
+  },
+  "runs\\m7b-g0.3\\ckpt_000900000.zip": {
+   "n": 60,
+   "mean_pnl": 1294.3833333333334,
+   "std_pnl": 9327.783041949657,
+   "risk_adjusted": 0.13876644938160854,
+   "spread_capture": 127.25833333333334,
+   "inventory_pnl": 1167.125,
+   "maker_volume": 3333.4666666666667
+  },
+  "runs\\m7b-g0.3\\ckpt_001000000.zip": {
+   "n": 60,
+   "mean_pnl": 1195.3,
+   "std_pnl": 1346.5633759402967,
+   "risk_adjusted": 0.8876670948854,
+   "spread_capture": 1730.8,
+   "inventory_pnl": -535.5,
+   "maker_volume": 3363.85
+  },
+  "runs\\m7b-g0.3\\ckpt_001100000.zip": {
+   "n": 60,
+   "mean_pnl": 720.5,
+   "std_pnl": 1037.4344741407012,
+   "risk_adjusted": 0.6945016942846288,
+   "spread_capture": 2372.733333333333,
+   "inventory_pnl": -1652.2333333333333,
+   "maker_volume": 3368.8
+  },
+  "runs\\m7b-g0.3\\ckpt_001200000.zip": {
+   "n": 60,
+   "mean_pnl": -295.23333333333335,
+   "std_pnl": 8980.27444064927,
+   "risk_adjusted": -0.03287575845087293,
+   "spread_capture": 2066.375,
+   "inventory_pnl": -2361.608333333333,
+   "maker_volume": 3409.2166666666667
+  },
+  "runs\\m7b-g0.3\\ckpt_001300000.zip": {
+   "n": 60,
+   "mean_pnl": 1133.0,
+   "std_pnl": 988.4476787161383,
+   "risk_adjusted": 1.1462417529996285,
+   "spread_capture": 2517.375,
+   "inventory_pnl": -1384.375,
+   "maker_volume": 3295.0333333333333
+  },
+  "runs\\m7b-g0.3\\ckpt_001400000.zip": {
+   "n": 60,
+   "mean_pnl": 2810.0833333333335,
+   "std_pnl": 1730.2243735332022,
+   "risk_adjusted": 1.6241149855004104,
+   "spread_capture": 4498.166666666667,
+   "inventory_pnl": -1688.0833333333333,
+   "maker_volume": 2952.7
+  },
+  "runs\\m7b-g0.3\\ckpt_001500000.zip": {
+   "n": 60,
+   "mean_pnl": 3792.983333333333,
+   "std_pnl": 1974.8073108462384,
+   "risk_adjusted": 1.9206852802808267,
+   "spread_capture": 5727.95,
+   "inventory_pnl": -1934.9666666666667,
+   "maker_volume": 2680.633333333333
+  },
+  "runs\\m7b-g1.0\\ckpt_000100000.zip": {
+   "n": 60,
+   "mean_pnl": -42164.73333333333,
+   "std_pnl": 52303.17127918619,
+   "risk_adjusted": -0.8061601677700296,
+   "spread_capture": -1674.3833333333334,
+   "inventory_pnl": -40490.35,
+   "maker_volume": 1046.1
+  },
+  "runs\\m7b-g1.0\\ckpt_000200000.zip": {
+   "n": 60,
+   "mean_pnl": -31920.283333333333,
+   "std_pnl": 35964.30514099075,
+   "risk_adjusted": -0.8875545685700404,
+   "spread_capture": -3807.391666666667,
+   "inventory_pnl": -28112.891666666666,
+   "maker_volume": 1033.2
+  },
+  "runs\\m7b-g1.0\\ckpt_000300000.zip": {
+   "n": 60,
+   "mean_pnl": -36687.53333333333,
+   "std_pnl": 33813.70455667831,
+   "risk_adjusted": -1.0849900599278592,
+   "spread_capture": -3701.025,
+   "inventory_pnl": -32986.50833333333,
+   "maker_volume": 886.8333333333334
+  },
+  "runs\\m7b-g1.0\\ckpt_000400000.zip": {
+   "n": 60,
+   "mean_pnl": -14105.666666666666,
+   "std_pnl": 38762.88416341935,
+   "risk_adjusted": -0.3638962107979113,
+   "spread_capture": -301.39166666666665,
+   "inventory_pnl": -13804.275,
+   "maker_volume": 2354.35
+  },
+  "runs\\m7b-g1.0\\ckpt_000500000.zip": {
+   "n": 60,
+   "mean_pnl": -15696.4,
+   "std_pnl": 29214.766444617682,
+   "risk_adjusted": -0.5372762445236591,
+   "spread_capture": -1357.525,
+   "inventory_pnl": -14338.875,
+   "maker_volume": 1849.0166666666667
+  },
+  "runs\\m7b-g1.0\\ckpt_000600000.zip": {
+   "n": 60,
+   "mean_pnl": -29198.133333333335,
+   "std_pnl": 33266.31200563864,
+   "risk_adjusted": -0.8777087561850635,
+   "spread_capture": 3069.983333333333,
+   "inventory_pnl": -32268.116666666665,
+   "maker_volume": 2600.75
+  },
+  "runs\\m7b-g1.0\\ckpt_000700000.zip": {
+   "n": 60,
+   "mean_pnl": 3560.5833333333335,
+   "std_pnl": 3566.7437330630632,
+   "risk_adjusted": 0.9982728224423235,
+   "spread_capture": 4810.216666666666,
+   "inventory_pnl": -1249.6333333333334,
+   "maker_volume": 3013.9666666666667
+  },
+  "runs\\m7b-g1.0\\ckpt_000800000.zip": {
+   "n": 60,
+   "mean_pnl": -2018.7,
+   "std_pnl": 17982.19489185938,
+   "risk_adjusted": -0.11226104555867507,
+   "spread_capture": 844.775,
+   "inventory_pnl": -2863.475,
+   "maker_volume": 3248.5666666666666
+  },
+  "runs\\m7b-g1.0\\ckpt_000900000.zip": {
+   "n": 60,
+   "mean_pnl": -1966.3833333333334,
+   "std_pnl": 4386.784916247027,
+   "risk_adjusted": -0.4482515944765329,
+   "spread_capture": 2983.35,
+   "inventory_pnl": -4949.733333333334,
+   "maker_volume": 3415.983333333333
+  },
+  "runs\\m7b-g1.0\\ckpt_001000000.zip": {
+   "n": 60,
+   "mean_pnl": 2083.6666666666665,
+   "std_pnl": 1560.8629693344471,
+   "risk_adjusted": 1.3349452883459354,
+   "spread_capture": 3404.241666666667,
+   "inventory_pnl": -1320.575,
+   "maker_volume": 3267.366666666667
+  },
+  "runs\\m7b-g1.0\\ckpt_001100000.zip": {
+   "n": 60,
+   "mean_pnl": 2276.0833333333335,
+   "std_pnl": 2824.8184539935655,
+   "risk_adjusted": 0.805744995794522,
+   "spread_capture": 4325.75,
+   "inventory_pnl": -2049.6666666666665,
+   "maker_volume": 3029.866666666667
+  },
+  "runs\\m7b-g1.0\\ckpt_001200000.zip": {
+   "n": 60,
+   "mean_pnl": 387.5833333333333,
+   "std_pnl": 2020.3896275657182,
+   "risk_adjusted": 0.1918359350321532,
+   "spread_capture": 2797.2083333333335,
+   "inventory_pnl": -2409.625,
+   "maker_volume": 3358.95
+  },
+  "runs\\m7b-g1.0\\ckpt_001300000.zip": {
+   "n": 60,
+   "mean_pnl": 4673.4,
+   "std_pnl": 2130.757350834579,
+   "risk_adjusted": 2.1933046473684645,
+   "spread_capture": 5933.508333333333,
+   "inventory_pnl": -1260.1083333333333,
+   "maker_volume": 2775.3
+  },
+  "runs\\m7b-g1.0\\ckpt_001400000.zip": {
+   "n": 60,
+   "mean_pnl": 4570.516666666666,
+   "std_pnl": 2320.959682367434,
+   "risk_adjusted": 1.96923570081348,
+   "spread_capture": 6029.266666666666,
+   "inventory_pnl": -1458.75,
+   "maker_volume": 2824.9666666666667
+  },
+  "runs\\m7b-g1.0\\ckpt_001500000.zip": {
+   "n": 60,
+   "mean_pnl": 4361.833333333333,
+   "std_pnl": 1927.1918550906353,
+   "risk_adjusted": 2.2633103817928895,
+   "spread_capture": 6428.766666666666,
+   "inventory_pnl": -2066.9333333333334,
+   "maker_volume": 2693.25
+  }
+ }
+}

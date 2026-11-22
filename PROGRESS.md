@@ -3,7 +3,32 @@
 Read this + DECISIONS.md + ASSUMPTIONS.md and you can continue cold. Update before
 ending any work stretch.
 
-## Current milestone: M7 — CLOSED, gate FAILED (2026-11-21)
+## Current milestone: M8 — COMPLETE (2026-11-22): a learned maker absorbs the lever
+
+**M8 ([docs/M8_RESULTS.md](docs/M8_RESULTS.md), ADR-026).** Pre-registered answer:
+**softens.** With the learned maker in maker 2's seat the crash move is smaller on 29 of
+30 seeds (median 0.15× the rule-based successor that keeps its parameters; 30/30 on
+executed prices), and the lever has no detectable effect at all (12.8 vs 12.5 ticks). It
+keeps quoting 5-6 ticks wide on both sides and earns more in the crash. Caveats: much of
+the gap is a tight learned quoter against a weak rule-based one, and the learned maker is
+exempt from the risk-appetite collapse the lever models. The M7 model agrees.
+
+**M7b ([docs/M7B_RESULTS.md](docs/M7B_RESULTS.md), ADR-025): gate FAILED, final.** One
+reward change (inventory penalty γ 0.01 → 1.0, chosen on 60 validation episodes) fixed
+M7's tail losses (worst held-out episode −2,848 vs −59,753). On HELD_OUT_4 it beats both
+baselines (RA 1.86 vs −0.52 and −0.16) and passes every detector, but ablation A3 trips
+clause (b) of the amended rule, which on inspection misreads a quieter market when the
+baselines lose money. Reported, not re-scored.
+
+**Infrastructure found on the way:** torch-free environment workers (`marquee.rl.vec`)
+and a torch-free numpy actor for evaluation (`export_actor`, identical actions, tested):
+both were needed to train and score on a 16 GB machine. Long runs must be launched
+detached from the Claude session (they were killed twice when it ended).
+
+**Next (the author's call):** push `feature/m7-rl` (M7, M7b, M8) to the public repo;
+update README and NOTE with the M8 result; LIMITATIONS.md.
+
+## Previous milestone: M7 — CLOSED, gate FAILED (2026-11-21)
 
 **Result ([docs/M7_RESULTS.md](docs/M7_RESULTS.md), ADR-024).** Run 1 (original gate,
 HELD_OUT) failed on G2 as implemented and two ablations. The author accepted an
