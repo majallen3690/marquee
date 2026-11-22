@@ -23,7 +23,7 @@ baselines lose money. Reported, not re-scored.
 **Infrastructure found on the way:** torch-free environment workers (`marquee.rl.vec`)
 and a torch-free numpy actor for evaluation (`export_actor`, identical actions, tested):
 both were needed to train and score on a 16 GB machine. Long runs must be launched
-detached from the Claude session (they were killed twice when it ended).
+detached from the terminal session (they were killed twice when it ended).
 
 **Shipped (2026-11-22):** README headline and chart (`docs/m8-softens.svg`, from
 `marquee.rl.m8_plot`), NOTE §10, and `LIMITATIONS.md`; `feature/m7-rl` fast-forwarded
@@ -234,7 +234,7 @@ cell).
 **Now: things only the author can do (this week).**
 1. ~~Create the public repo, push~~ **done 2026-11-20**: github.com/majallen3690/marquee, demo at majallen3690.github.io/marquee.
 2. M6 sign-off, in the author's own words: a one-page defence of RL_DESIGN.md §4 and §7
-   written without Claude. Proposed amendment to sign with it: M7's headline question
+   written without AI help. Proposed amendment to sign with it: M7's headline question
    becomes *does a learned market maker soften or deepen the lever's effect?*, measured
    with the paired seed sweep, not one seed; PPO-vs-baseline P&L becomes a secondary
    result. Timebox M7 to 3 weeks; if there is no gate result by then, Phase 1 ships alone.

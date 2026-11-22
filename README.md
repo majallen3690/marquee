@@ -75,8 +75,8 @@ is financial advice. No real orders are placed anywhere.**
 
 ## How this was built
 
-Specified and directed by the author; implemented with Claude, Anthropic's coding
-agent (commits say so). The claims are held by tests rather than by prose:
+Specified and directed by the author; implemented with an AI coding
+agent. The claims are held by tests rather than by prose:
 
 | Claim | Held by |
 |---|---|

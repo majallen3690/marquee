@@ -680,9 +680,8 @@ DESIGN.md, and rebuild the Live screen on it: a stat strip with one headline for
 crash, a depth-map chart with the lever, a TradingView-style range box and numbered
 engine events, a price-anchored order book with cumulative depth, a lever ticket, an
 attributed tape, and an agents table. Split-flap tiles for the figures a room must read;
-amber reserved for "a human changed a rule". Design canvas:
-https://claude.ai/artifact/GYXCs4fpaYsD6xqQr1ybzu — every figure on it comes from a real
-seeded run.
+amber reserved for "a human changed a rule". Every figure on the design boards comes
+from a real seeded run.
 
 **Why.** v1 showed *that* the price fell but not *why*. The demo's narration (DEMO.md)
 says the ladder thins, the spread blows out and momentum piles in; none of that was

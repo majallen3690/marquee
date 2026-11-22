@@ -1,8 +1,6 @@
 # DESIGN.md — marquee visual system (v3, "departure board")
 
 Supersedes v1 (green terminal) and the v2 amendments. Decision record: ADR-018.
-Design canvas (static boards built from a real seeded run):
-https://claude.ai/artifact/GYXCs4fpaYsD6xqQr1ybzu
 
 ## Direction: a departure board for a market
 

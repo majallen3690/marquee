@@ -59,8 +59,7 @@ details; this file is the short version for anyone deciding how much to trust it
 ## How it was built
 
 - **Implemented with an AI coding agent.** The author specified the project, set the
-  gates and made the calls on every result. The code was written with Claude, and the
-  commits say so.
+  gates and made the calls on every result; the agent wrote the code.
 - **Pre-registration rests on commit order.** The gates, episode sets and M8 reading were
   committed before the runs they govern (see the ADRs in `DECISIONS.md` and the commit
   history). Nothing external timestamps them.

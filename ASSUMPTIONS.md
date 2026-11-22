@@ -42,7 +42,3 @@ would change if it's wrong. Corrections welcome at any time.
 7. **Tick size default $0.01, integer quantities.** Standard equity convention; it's a
    per-scenario config value, not a constant (ADR-004).
 
-8. **Session working directory quirk:** Claude Code sessions open in the old OneDrive
-   folder (`...\OneDrive\Desktop\career shi\VIBE CODING\marquee`). The real repo is
-   `C:\dev\marquee`. A pointer README in the old folder and a persistent memory entry
-   both record this.
