@@ -28,11 +28,22 @@ def main() -> None:
     ap.add_argument("--model-out", type=Path, default=REPO / "models" / "m7b.zip")
     args = ap.parse_args()
 
+    # Scores are deterministic, so each is saved as it lands and an interrupted choice
+    # resumes where it stopped instead of starting over.
+    partial = args.out.with_suffix(".partial.jsonl")
     table = {}
+    if partial.exists():
+        for line in partial.read_text(encoding="utf-8").splitlines():
+            rec = json.loads(line)
+            table[rec["ckpt"]] = rec["describe"]
     for run in args.runs:
         for ckpt in sorted(run.glob("ckpt_*.zip")):
+            if str(ckpt) in table:
+                continue
             d = describe(run_eval(("ppo", str(ckpt)), CHOICE_SET, workers=args.workers))
             table[str(ckpt)] = d
+            with open(partial, "a", encoding="utf-8") as f:
+                f.write(json.dumps({"ckpt": str(ckpt), "describe": d}) + "\n")
             print(f"{ckpt}  RA {d['risk_adjusted']:.3f}  mean {d['mean_pnl']:.0f}", flush=True)
     best = max(table, key=lambda k: table[k]["risk_adjusted"])
     shutil.copyfile(best, args.model_out)

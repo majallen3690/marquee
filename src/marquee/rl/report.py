@@ -28,6 +28,7 @@ from marquee.rl.evaluate import (  # noqa: E402
     FIXED_GRID,
     HELD_OUT,
     HELD_OUT_3,
+    HELD_OUT_4,
     TRAIN_EVAL,
     ablations,
     ablations_vs_baselines,
@@ -74,7 +75,7 @@ def main() -> None:
     ap.add_argument("--out", type=Path, default=REPO / "docs" / "m7-results.json")
     ap.add_argument("--grid-only", action="store_true")
     ap.add_argument("--gate", choices=("original", "amended"), default="amended")
-    ap.add_argument("--held-out", type=int, choices=(1, 3), default=3)
+    ap.add_argument("--held-out", type=int, choices=(1, 3, 4), default=3)
     args = ap.parse_args()
 
     best, grid = fixed_grid(args.workers)
@@ -90,7 +91,7 @@ def main() -> None:
         "do-nothing": DO_NOTHING,
         "random": ("random", 0),
     }
-    held_out = HELD_OUT_3 if args.held_out == 3 else HELD_OUT
+    held_out = {1: HELD_OUT, 3: HELD_OUT_3, 4: HELD_OUT_4}[args.held_out]
     rows = {name: run_eval(spec, held_out, workers=args.workers) for name, spec in specs.items()}
     table = {name: describe(r) for name, r in rows.items()}
     for name, d in table.items():
